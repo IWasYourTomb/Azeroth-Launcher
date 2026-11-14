@@ -95,9 +95,6 @@ private struct LauncherRootView: View {
                 isSplashVisible = false
             }
         }
-        .task {
-            onboardingCompleted = false
-        }
         .onAppear {
             guard !reduceMotion else {
                 return
