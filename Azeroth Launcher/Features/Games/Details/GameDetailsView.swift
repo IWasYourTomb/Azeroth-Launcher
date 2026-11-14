@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AppKit
 
 struct GameDetailsView: View {
     let installation: GameInstallation
@@ -13,6 +14,7 @@ struct GameDetailsView: View {
     @Environment(\.locale) private var appLocale
     @Environment(\.dismiss) private var dismiss
 
+    @State private var copiedValue: String?
     @State private var isRealmManagerPresented = false
     @State private var currentRealmAddress: String?
     @State private var savedRealms: [RealmServer] = []
@@ -71,7 +73,6 @@ struct GameDetailsView: View {
         }
     }
 
-    // MARK: - Header
 
     private var header: some View {
         HStack(spacing: 14) {
@@ -195,8 +196,6 @@ struct GameDetailsView: View {
         }
         .shadow(color: .black.opacity(0.16), radius: 12, y: 6)
     }
-
-    // MARK: - Installation
 
     private var installationSection: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -406,7 +405,9 @@ struct GameDetailsView: View {
         value: String,
         icon: String
     ) -> some View {
-        HStack(spacing: 13) {
+        let isCopied = copiedValue == value
+
+        return HStack(spacing: 13) {
             Image(systemName: icon)
                 .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(LauncherTheme.accent)
@@ -427,15 +428,56 @@ struct GameDetailsView: View {
 
             Spacer(minLength: 5)
 
-            Image(systemName: "doc.on.doc")
-                .font(.system(size: 11))
-                .foregroundStyle(LauncherTheme.secondaryText)
+            Button {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(value, forType: .string)
+
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    copiedValue = value
+                }
+
+                Task {
+                    try? await Task.sleep(nanoseconds: 1_500_000_000)
+
+                    if copiedValue == value {
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            copiedValue = nil
+                        }
+                    }
+                }
+            } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: isCopied ? "checkmark.circle.fill" : "doc.on.doc")
+                        .font(.system(size: 12, weight: .semibold))
+
+                    if isCopied {
+                        Text("Copied")
+                            .font(.system(size: 10, weight: .semibold))
+                            .transition(.opacity.combined(with: .scale(scale: 0.85)))
+                    }
+                }
+                .foregroundStyle(
+                    isCopied ? Color.green : LauncherTheme.secondaryText
+                )
+                .padding(.horizontal, 9)
+                .padding(.vertical, 7)
+                .background(
+                    isCopied
+                        ? Color.green.opacity(0.1)
+                        : LauncherTheme.elevatedSurface
+                )
+                .clipShape(Capsule())
+            }
+            .buttonStyle(.plain)
+            .help(isCopied ? "Copied to clipboard" : "Copy to clipboard")
+            .accessibilityLabel(
+                isCopied ? "Copied to clipboard" : "Copy to clipboard"
+            )
         }
         .padding(14)
         .contentShape(Rectangle())
     }
 
-    // MARK: - Realm Loading
 
     private func loadCurrentRealm() {
         savedRealms = realmStore.load(for: installation.edition)

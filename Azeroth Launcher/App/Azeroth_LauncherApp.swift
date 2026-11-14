@@ -11,6 +11,7 @@ import SwiftUI
 struct Azeroth_LauncherApp: App {
     @State private var appState = AppState()
     @State private var updaterManager = UpdaterManager()
+    @State private var themeTransitionManager = ThemeTransitionManager()
 
     @AppStorage("AzerothLauncher.Appearance")
     private var selectedAppearance = "dark"
@@ -40,9 +41,8 @@ struct Azeroth_LauncherApp: App {
             .environment(appState.runtimeManager)
             .environment(updaterManager)
             .environment(\.locale, appLocale)
-            .preferredColorScheme(
-                selectedAppearance == "dark" ? .dark : .light
-            )
+            .environment(themeTransitionManager)
+            .preferredColorScheme(selectedAppearance == "dark" ? .dark : .light)
             .onAppear {
                 updaterManager.start()
             }
@@ -56,7 +56,8 @@ private struct LauncherRootView: View {
     @Binding var onboardingCompleted: Bool
     @Environment(\.accessibilityReduceMotion)
     private var reduceMotion
-    
+    @Environment(ThemeTransitionManager.self)
+    private var themeTransitionManager
     @State private var isSplashVisible = true
     @State private var atmosphereAnimating = false
     
@@ -64,19 +65,23 @@ private struct LauncherRootView: View {
         ZStack {
             LauncherTheme.background
                 .ignoresSafeArea()
-            
+
             atmosphere
-            
-            screenContent
-                .zIndex(1)
-            
+
             ArcaneParticleView(
                 particleCount: 42,
                 intensity: 0.45
             )
             .zIndex(2)
             .allowsHitTesting(false)
+
+            screenContent
+                .zIndex(1)
+
+            themeTransitionOverlay
+                .zIndex(10)
         }
+        .clipped()
         .clipped()
         .task {
             try? await Task.sleep(
@@ -159,6 +164,28 @@ private struct LauncherRootView: View {
             )
             .zIndex(1)
         }
+    }
+    
+    private var themeTransitionOverlay: some View {
+        ZStack {
+            themeTransitionManager.transitionColor
+
+            RadialGradient(
+                colors: [
+                    LauncherTheme.accent.opacity(0.35),
+                    LauncherTheme.accentSecondary.opacity(0.12),
+                    .clear
+                ],
+                center: .center,
+                startRadius: 0,
+                endRadius: 500
+            )
+            .opacity(themeTransitionManager.glowOpacity)
+            .blur(radius: 35)
+        }
+        .opacity(themeTransitionManager.veilOpacity)
+        .ignoresSafeArea()
+        .allowsHitTesting(themeTransitionManager.isTransitioning)
     }
     
     private var atmosphere: some View {

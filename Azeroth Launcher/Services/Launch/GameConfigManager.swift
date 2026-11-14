@@ -6,23 +6,21 @@
 //
 
 import Foundation
-
 import AppKit
 
 @MainActor
-
 final class GameConfigManager {
+
     private let fileManager: FileManager
 
     init(fileManager: FileManager = .default) {
-
         self.fileManager = fileManager
-
     }
 
     private struct DisplayResolution {
         let width: Int
         let height: Int
+
         var description: String {
             "\(width)x\(height)"
         }
@@ -37,13 +35,10 @@ final class GameConfigManager {
         }
 
         let width = Int(screen.frame.width.rounded())
-
         let height = Int(screen.frame.height.rounded())
 
         guard width > 0, height > 0 else {
-
             throw GameConfigError.invalidResolution
-
         }
 
         return DisplayResolution(
@@ -53,9 +48,12 @@ final class GameConfigManager {
     }
 
     func prepare(for installation: GameInstallation) throws {
+
         let resolution = try currentDisplayResolution()
-        let wowDirectory = installation.installationPath
-        let wtfDirectory = wowDirectory
+
+        let isFullscreen = installation.edition == .cataclysm
+
+        let wtfDirectory = installation.installationPath
             .appendingPathComponent("WTF", isDirectory: true)
 
         let configURL = wtfDirectory
@@ -67,6 +65,7 @@ final class GameConfigManager {
         )
 
         let originalContent: String
+
         if fileManager.fileExists(atPath: configURL.path) {
             originalContent = try String(
                 contentsOf: configURL,
@@ -78,7 +77,8 @@ final class GameConfigManager {
 
         let updatedContent = updateConfiguration(
             originalContent,
-            resolution: resolution
+            resolution: resolution,
+            fullscreen: isFullscreen
         )
 
         guard updatedContent != originalContent else {
@@ -93,14 +93,18 @@ final class GameConfigManager {
 
         print("[GameConfigManager] Config.wtf updated")
         print("[GameConfigManager] Resolution: \(resolution.description)")
-        print("[GameConfigManager] Windowed mode: enabled")
-        print("[GameConfigManager] Maximized: enabled")
+        print("[GameConfigManager] Fullscreen: \(isFullscreen)")
     }
 
-    private func updateConfiguration( _ content: String,resolution: DisplayResolution) -> String {
+    private func updateConfiguration(
+        _ content: String,
+        resolution: DisplayResolution,
+        fullscreen: Bool
+    ) -> String {
+
         let values: [String: String] = [
             "gxResolution": resolution.description,
-            "gxWindow": "1",
+            "gxWindow": fullscreen ? "0" : "1",
             "gxMaximize": "1"
         ]
 
@@ -108,19 +112,21 @@ final class GameConfigManager {
             ? "\r\n"
             : "\n"
 
-        var lines = content.isEmpty
+        let lines = content.isEmpty
             ? []
             : content.components(separatedBy: lineEnding)
 
         var processedKeys = Set<String>()
         var updatedLines: [String] = []
+
         for line in lines {
+
             guard let key = configurationKey(in: line),
                   let value = values[key] else {
                 updatedLines.append(line)
                 continue
             }
-            
+
             if processedKeys.insert(key).inserted {
                 updatedLines.append("SET \(key) \"\(value)\"")
             }
@@ -131,15 +137,17 @@ final class GameConfigManager {
             "gxWindow",
             "gxMaximize"
         ] where !processedKeys.contains(key) {
-            updatedLines.append("SET \(key) \"\(values[key]!)\"")
 
+            if let value = values[key] {
+                updatedLines.append("SET \(key) \"\(value)\"")
+            }
         }
 
         return updatedLines.joined(separator: lineEnding)
-
     }
 
     private func configurationKey(in line: String) -> String? {
+
         let components = line
             .trimmingCharacters(in: .whitespaces)
             .split(
@@ -162,17 +170,21 @@ final class GameConfigManager {
         ].contains(key) else {
             return nil
         }
+
         return key
     }
 }
 
 enum GameConfigError: LocalizedError {
+
     case displayUnavailable
     case invalidResolution
+
     var errorDescription: String? {
         switch self {
         case .displayUnavailable:
             return "Unable to detect the current display."
+
         case .invalidResolution:
             return "Invalid display resolution."
         }

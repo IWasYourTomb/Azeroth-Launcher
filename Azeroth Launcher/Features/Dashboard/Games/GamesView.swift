@@ -41,6 +41,20 @@ struct GamesView: View {
                 installedGames
             }
         }
+        .background {
+            ZStack {
+                LauncherTheme.background
+
+                ArcaneParticleView(
+                    particleCount: 32,
+                    intensity: 0.4
+                )
+            }
+        }
+        .animation(
+            .easeInOut(duration: 0.3),
+            value: installedInstallations.count
+        )
         .sheet(item: $selectedInstallation) { installation in
             GameDetailsView(installation: installation)
                 .environment(\.locale, appLocale)
@@ -89,27 +103,27 @@ struct GamesView: View {
     
     private var installedGames: some View {
         VStack(alignment: .leading, spacing: 22) {
+            
             HStack(alignment: .center) {
                 VStack(alignment: .leading, spacing: 5) {
                     Text("Your game library")
                         .font(.system(size: 19, weight: .bold))
                         .foregroundStyle(LauncherTheme.primaryText)
-
                     Text("Your installed World of Warcraft clients")
                         .font(.system(size: 12))
                         .foregroundStyle(LauncherTheme.secondaryText)
                 }
-
-                Spacer()
-
+                
+                Spacer(minLength: 12)
+                
                 HStack(spacing: 7) {
                     Image(systemName: "square.grid.2x2.fill")
                         .font(.system(size: 11))
-
+                    
                     Text("\(installedInstallations.count)")
                         .font(.system(size: 12, weight: .bold))
                         .monospacedDigit()
-
+                    
                     Text("INSTALLED")
                         .font(.system(size: 9, weight: .bold))
                         .tracking(1)
@@ -120,39 +134,50 @@ struct GamesView: View {
                 .background(LauncherTheme.accentBackground)
                 .clipShape(Capsule())
             }
+            .padding(.horizontal, 24)
 
-            LazyVGrid(
-                columns: [
-                    GridItem(.flexible(), spacing: 18),
-                    GridItem(.flexible(), spacing: 18)
-                ],
-                spacing: 18
-            ) {
-                ForEach(installedInstallations) { installation in
-                    GameCardView(
-                        edition: installation.edition,
-                        installation: installation,
-                        isLaunching: launchingInstallationID == installation.id,
-                        isRunning: runningInstallationIDs.contains(installation.id),
-                        totalPlaytime: appState.gameLaunchManager.totalPlaytime(
-                            for: installation.id
-                        ),
-                        currentSessionDuration: appState.gameLaunchManager.currentSessionDuration(
-                            for: installation.id
-                        ),
-                        environmentStatus: environmentStatuses[installation.id],
-                        onPlay: {
-                            launchGame(installation)
-                        },
-                        onStop: {
-                            stopGame(installation)
+            ScrollView(.vertical) {
+                LazyVGrid(
+                    columns: [
+                        GridItem(
+                            .adaptive(minimum: 420),
+                            spacing: 18
+                        )
+                    ],
+                    alignment: .leading,
+                    spacing: 18
+                ) {
+                    ForEach(installedInstallations) { installation in
+                        GameCardView(
+                            edition: installation.edition,
+                            installation: installation,
+                            isLaunching: launchingInstallationID == installation.id,
+                            isRunning: runningInstallationIDs.contains(installation.id),
+                            totalPlaytime: appState.gameLaunchManager.totalPlaytime(
+                                for: installation.id
+                            ),
+                            currentSessionDuration: appState.gameLaunchManager.currentSessionDuration(
+                                for: installation.id
+                            ),
+                            environmentStatus: environmentStatuses[installation.id],
+                            onPlay: {
+                                launchGame(installation)
+                            },
+                            onStop: {
+                                stopGame(installation)
+                            }
+                        ) {
+                            selectedInstallation = installation
                         }
-                    ) {
-                        selectedInstallation = installation
                     }
                 }
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 18)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func refreshEnvironmentStatuses() async {

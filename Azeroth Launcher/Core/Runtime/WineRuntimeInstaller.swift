@@ -8,9 +8,6 @@ import CryptoKit
 import Darwin
 
 actor WineRuntimeInstaller {
-
-    // MARK: - Configuration
-
     private let runtimeName = "WineAndAqua"
     private let runtimeVersion = "11.13 (r17)"
     private let runtimeDirectoryName = "Wine-r17"
@@ -23,8 +20,6 @@ actor WineRuntimeInstaller {
         "dc67cf0c2dd1e4c1cfaffe924f4737aaa594645b135a7973ac3505c83c70f882"
 
     private let quarantineAttribute = "com.apple.quarantine"
-
-    // MARK: - Paths
 
     private var applicationSupportDirectory: URL {
         FileManager.default
@@ -72,8 +67,6 @@ actor WineRuntimeInstaller {
             .appendingPathComponent("wineserver")
     }
 
-    // MARK: - Installation
-
     func install() async throws -> WineRuntime {
 
         print("[WineRuntimeInstaller] Starting installation")
@@ -86,7 +79,6 @@ actor WineRuntimeInstaller {
         do {
             try createDirectories()
 
-            // Диагностика quarantine до загрузки.
             try diagnoseQuarantineExclusion()
 
             try downloadRuntime()
@@ -105,7 +97,6 @@ actor WineRuntimeInstaller {
 
             try validateRuntime()
 
-            // Проверяем quarantine после распаковки.
             try diagnoseExtractedQuarantine()
 
             try setExecutablePermissions()
@@ -123,8 +114,6 @@ actor WineRuntimeInstaller {
             throw error
         }
     }
-
-    // MARK: - Directories
 
     private func createDirectories() throws {
 
@@ -147,9 +136,7 @@ actor WineRuntimeInstaller {
 
         print("[WineRuntimeInstaller] Application directory: \(applicationSupportDirectory.path)")
     }
-
-    // MARK: - Quarantine Diagnostics
-
+    
     private func diagnoseQuarantineExclusion() throws {
 
         let probeURL = downloadsDirectory
@@ -204,8 +191,6 @@ actor WineRuntimeInstaller {
         print("[WineRuntimeInstaller] Checked files: \(checkedFiles)")
         print("[WineRuntimeInstaller] Quarantined files: \(quarantinedFiles)")
     }
-
-    // MARK: - Download
 
     private func downloadRuntime() throws {
 
@@ -292,8 +277,6 @@ actor WineRuntimeInstaller {
         }
     }
 
-    // MARK: - SHA256
-
     private func verifyChecksum() throws {
 
         print("[WineRuntimeInstaller] Verifying SHA256...")
@@ -338,8 +321,6 @@ actor WineRuntimeInstaller {
             .joined()
     }
 
-    // MARK: - Quarantine API
-
     private func hasQuarantineAttribute(at url: URL) -> Bool {
 
         let result = url.path.withCString { path in
@@ -351,7 +332,6 @@ actor WineRuntimeInstaller {
         return result >= 0
     }
 
-    // MARK: - Extraction
 
     private func extractRuntime() throws {
 
@@ -407,7 +387,6 @@ actor WineRuntimeInstaller {
         print("[WineRuntimeInstaller] Extraction completed")
     }
 
-    // MARK: - Validation
 
     private func validateRuntime() throws {
 
@@ -431,8 +410,6 @@ actor WineRuntimeInstaller {
         print("[WineRuntimeInstaller] wine: \(wineURL.path)")
         print("[WineRuntimeInstaller] wineserver: \(wineserverURL.path)")
     }
-
-    // MARK: - Permissions
 
     private func setExecutablePermissions() throws {
 
@@ -458,8 +435,6 @@ actor WineRuntimeInstaller {
 
         print("[WineRuntimeInstaller] Permissions updated")
     }
-
-    // MARK: - Diagnostics
 
     private func diagnoseRuntime() throws {
 
@@ -546,8 +521,6 @@ actor WineRuntimeInstaller {
         }
     }
 
-    // MARK: - Installation Swap
-
     private func installStagingRuntime() throws {
 
         let fileManager = FileManager.default
@@ -604,12 +577,7 @@ actor WineRuntimeInstaller {
         }
     }
 
-    // MARK: - Process Helper
-
-    private func runCommand(
-        _ executable: String,
-        arguments: [String]
-    ) throws {
+    private func runCommand(_ executable: String, arguments: [String]) throws {
 
         let process = Process()
 
@@ -643,8 +611,6 @@ actor WineRuntimeInstaller {
         }
     }
 
-    // MARK: - Runtime State
-
     private var isInstalled: Bool {
 
         let fileManager = FileManager.default
@@ -675,8 +641,6 @@ actor WineRuntimeInstaller {
         return true
     }
 
-    // MARK: - Runtime Factory
-
     private func makeRuntime() -> WineRuntime {
 
         WineRuntime(
@@ -686,10 +650,7 @@ actor WineRuntimeInstaller {
         )
     }
 
-    // MARK: - Errors
-
     enum InstallerError: LocalizedError {
-
         case downloadFailed(String)
         case checksumMismatch
         case extractionFailed(String)
@@ -699,27 +660,19 @@ actor WineRuntimeInstaller {
         case quarantineDetected
 
         var errorDescription: String? {
-
             switch self {
-
             case .downloadFailed(let message):
                 return "Wine Runtime download failed: \(message)"
-
             case .checksumMismatch:
                 return "Wine Runtime SHA-256 checksum mismatch."
-
             case .extractionFailed(let message):
                 return "Wine Runtime extraction failed: \(message)"
-
             case .invalidRuntime:
                 return "Downloaded Wine Runtime is invalid or incomplete."
-
             case .installationFailed(let message):
                 return "Wine Runtime installation failed: \(message)"
-
             case .permissionFixFailed(let message):
                 return "Unable to fix Wine Runtime permissions: \(message)"
-
             case .quarantineDetected:
                 return "macOS quarantine was detected in Wine Runtime files."
             }

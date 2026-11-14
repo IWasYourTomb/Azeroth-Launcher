@@ -9,6 +9,8 @@ struct SettingsView: View {
     @Environment(RendererManager.self) private var rendererManager
     @Environment(WineRuntimeManager.self) private var runtimeManager
     @Environment(UpdaterManager.self) private var updaterManager
+    @Environment(ThemeTransitionManager.self)
+    private var themeTransitionManager
 
     @AppStorage("AzerothLauncher.Language")
     private var selectedLanguage = "system"
@@ -37,12 +39,27 @@ struct SettingsView: View {
             .padding(30)
             .frame(maxWidth: 780, alignment: .leading)
             .frame(maxWidth: .infinity, alignment: .center)
+            .animation(
+                .easeOut(duration: 0.3),
+                value: selectedLanguage
+            )
         }
-        .background(LauncherTheme.background)
+        .background {
+            ZStack {
+                LauncherTheme.background
+
+                ArcaneParticleView(
+                    particleCount: 28,
+                    intensity: 0.35
+                )
+            }
+        }
+        .animation(
+            .easeInOut(duration: 0.55),
+            value: selectedAppearance
+        )
         .scrollIndicators(.visible)
     }
-
-    // MARK: - Header
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 7) {
@@ -56,8 +73,6 @@ struct SettingsView: View {
         }
         .padding(.bottom, 4)
     }
-
-    // MARK: - Appearance
 
     private var appearanceSection: some View {
         settingsSection(
@@ -92,9 +107,12 @@ struct SettingsView: View {
         let isSelected = selectedAppearance == value
 
         return Button {
-            withAnimation(.easeInOut(duration: 0.2)) {
-                selectedAppearance = value
-            }
+            themeTransitionManager.transition(
+                    from: selectedAppearance,
+                    to: value
+                ) {
+                    selectedAppearance = value
+                }
         } label: {
             VStack(alignment: .leading, spacing: 17) {
                 HStack {
@@ -141,8 +159,6 @@ struct SettingsView: View {
         }
         .buttonStyle(.plain)
     }
-
-    // MARK: - Language
 
     private var languageSection: some View {
         settingsSection(
@@ -191,8 +207,6 @@ struct SettingsView: View {
             }
         }
     }
-
-    // MARK: - Graphics
 
     private var graphicsSection: some View {
         settingsSection(

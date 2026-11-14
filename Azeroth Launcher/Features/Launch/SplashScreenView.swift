@@ -8,23 +8,42 @@
 import SwiftUI
 
 struct SplashScreenView: View {
+    @Environment(\.colorScheme) private var colorScheme
 
     @State private var rotation: Double = 0
     @State private var reverseRotation: Double = 0
     @State private var portalPulse = false
     @State private var contentVisible = false
 
-    private let gold = Color(
-        red: 0.92,
-        green: 0.68,
-        blue: 0.28
-    )
+    private var isLight: Bool {
+        colorScheme == .light
+    }
 
-    private let arcaneBlue = Color(
-        red: 0.25,
-        green: 0.58,
-        blue: 1.0
-    )
+    private var gold: Color {
+        Color(
+            red: 0.92,
+            green: 0.68,
+            blue: 0.28
+        )
+    }
+
+    private var arcaneBlue: Color {
+        isLight
+            ? Color(red: 0.25, green: 0.48, blue: 0.78)
+            : Color(red: 0.25, green: 0.58, blue: 1.0)
+    }
+
+    private var primaryText: Color {
+        isLight
+            ? Color(red: 0.12, green: 0.16, blue: 0.24)
+            : .white
+    }
+
+    private var secondaryText: Color {
+        isLight
+            ? Color(red: 0.36, green: 0.40, blue: 0.48)
+            : .white.opacity(0.4)
+    }
 
     var body: some View {
         GeometryReader { geometry in
@@ -45,60 +64,98 @@ struct SplashScreenView: View {
             }
         }
         .ignoresSafeArea()
-        .preferredColorScheme(.dark)
+        .animation(
+            .easeInOut(duration: 0.65),
+            value: colorScheme
+        )
     }
 
     private var background: some View {
         ZStack {
-            LinearGradient(
-                colors: [
-                    Color(red: 0.018, green: 0.025, blue: 0.055),
-                    Color(red: 0.035, green: 0.045, blue: 0.085),
-                    Color(red: 0.055, green: 0.035, blue: 0.065),
-                    Color(red: 0.015, green: 0.02, blue: 0.045)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+            if isLight {
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.97, green: 0.96, blue: 0.93),
+                        Color(red: 0.94, green: 0.95, blue: 0.96),
+                        Color(red: 0.98, green: 0.95, blue: 0.89),
+                        Color(red: 0.96, green: 0.95, blue: 0.92)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
 
-            RadialGradient(
-                colors: [
-                    arcaneBlue.opacity(0.15),
-                    .clear
-                ],
-                center: .center,
-                startRadius: 20,
-                endRadius: 380
-            )
+                RadialGradient(
+                    colors: [
+                        arcaneBlue.opacity(0.12),
+                        .clear
+                    ],
+                    center: .center,
+                    startRadius: 20,
+                    endRadius: 380
+                )
 
-            LinearGradient(
-                colors: [
-                    .black.opacity(0.15),
-                    .clear,
-                    .black.opacity(0.35)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
+                LinearGradient(
+                    colors: [
+                        .white.opacity(0.15),
+                        .clear,
+                        Color(red: 0.75, green: 0.67, blue: 0.52)
+                            .opacity(0.08)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            } else {
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.018, green: 0.025, blue: 0.055),
+                        Color(red: 0.035, green: 0.045, blue: 0.085),
+                        Color(red: 0.055, green: 0.035, blue: 0.065),
+                        Color(red: 0.015, green: 0.02, blue: 0.045)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+
+                RadialGradient(
+                    colors: [
+                        arcaneBlue.opacity(0.15),
+                        .clear
+                    ],
+                    center: .center,
+                    startRadius: 20,
+                    endRadius: 380
+                )
+
+                LinearGradient(
+                    colors: [
+                        .black.opacity(0.15),
+                        .clear,
+                        .black.opacity(0.35)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            }
         }
+        .animation(.easeInOut(duration: 0.65), value: isLight)
     }
 
     private var ambientGlow: some View {
         ZStack {
             Circle()
-                .fill(arcaneBlue.opacity(0.13))
+                .fill(arcaneBlue.opacity(isLight ? 0.12 : 0.13))
                 .frame(width: 340, height: 340)
                 .blur(radius: 100)
                 .offset(x: -180, y: -80)
 
             Circle()
-                .fill(gold.opacity(0.08))
+                .fill(gold.opacity(isLight ? 0.13 : 0.08))
                 .frame(width: 300, height: 300)
                 .blur(radius: 100)
                 .offset(x: 190, y: 100)
 
             Circle()
-                .fill(arcaneBlue.opacity(0.1))
+                .fill(arcaneBlue.opacity(isLight ? 0.09 : 0.1))
                 .frame(width: 180, height: 180)
                 .blur(radius: 70)
                 .scaleEffect(portalPulse ? 1.3 : 0.85)
@@ -113,13 +170,13 @@ struct SplashScreenView: View {
     private var portal: some View {
         ZStack {
             Circle()
-                .fill(arcaneBlue.opacity(0.08))
+                .fill(arcaneBlue.opacity(isLight ? 0.09 : 0.08))
                 .frame(width: 245, height: 245)
                 .blur(radius: 35)
 
             Circle()
                 .stroke(
-                    gold.opacity(0.13),
+                    gold.opacity(isLight ? 0.35 : 0.13),
                     style: StrokeStyle(
                         lineWidth: 1,
                         dash: [3, 8]
@@ -134,7 +191,7 @@ struct SplashScreenView: View {
                         colors: [
                             gold.opacity(0.05),
                             gold,
-                            .white.opacity(0.8),
+                            isLight ? .white : .white.opacity(0.8),
                             gold.opacity(0.15),
                             gold
                         ],
@@ -155,7 +212,7 @@ struct SplashScreenView: View {
                         colors: [
                             .clear,
                             arcaneBlue.opacity(0.8),
-                            .white.opacity(0.8),
+                            isLight ? .white : .white.opacity(0.8),
                             arcaneBlue.opacity(0.2),
                             .clear
                         ],
@@ -171,7 +228,7 @@ struct SplashScreenView: View {
 
             Circle()
                 .stroke(
-                    gold.opacity(0.35),
+                    gold.opacity(isLight ? 0.5 : 0.35),
                     style: StrokeStyle(
                         lineWidth: 1,
                         dash: [2, 5]
@@ -183,14 +240,23 @@ struct SplashScreenView: View {
             Circle()
                 .fill(
                     RadialGradient(
-                        colors: [
-                            arcaneBlue.opacity(0.65),
-                            Color(red: 0.12, green: 0.25, blue: 0.65)
-                                .opacity(0.35),
-                            Color(red: 0.04, green: 0.08, blue: 0.2)
-                                .opacity(0.8),
-                            .clear
-                        ],
+                        colors: isLight
+                            ? [
+                                arcaneBlue.opacity(0.22),
+                                Color(red: 0.65, green: 0.73, blue: 0.88)
+                                    .opacity(0.35),
+                                Color(red: 0.88, green: 0.82, blue: 0.68)
+                                    .opacity(0.3),
+                                .clear
+                            ]
+                            : [
+                                arcaneBlue.opacity(0.65),
+                                Color(red: 0.12, green: 0.25, blue: 0.65)
+                                    .opacity(0.35),
+                                Color(red: 0.04, green: 0.08, blue: 0.2)
+                                    .opacity(0.8),
+                                .clear
+                            ],
                         center: .center,
                         startRadius: 5,
                         endRadius: 80
@@ -201,7 +267,7 @@ struct SplashScreenView: View {
 
             Circle()
                 .stroke(
-                    arcaneBlue.opacity(0.55),
+                    arcaneBlue.opacity(isLight ? 0.4 : 0.55),
                     lineWidth: 1
                 )
                 .frame(width: 118, height: 118)
@@ -212,7 +278,7 @@ struct SplashScreenView: View {
                 .foregroundStyle(
                     LinearGradient(
                         colors: [
-                            .white,
+                            isLight ? gold : .white,
                             arcaneBlue,
                             gold
                         ],
@@ -220,7 +286,10 @@ struct SplashScreenView: View {
                         endPoint: .bottomTrailing
                     )
                 )
-                .shadow(color: arcaneBlue.opacity(0.9), radius: 18)
+                .shadow(
+                    color: arcaneBlue.opacity(isLight ? 0.4 : 0.9),
+                    radius: 18
+                )
                 .scaleEffect(portalPulse ? 1.08 : 0.94)
 
             portalParticles
@@ -241,7 +310,7 @@ struct SplashScreenView: View {
                         height: index.isMultiple(of: 3) ? 4 : 2
                     )
                     .shadow(
-                        color: arcaneBlue.opacity(0.8),
+                        color: arcaneBlue.opacity(isLight ? 0.4 : 0.8),
                         radius: 5
                     )
                     .offset(y: -108)
@@ -265,35 +334,49 @@ struct SplashScreenView: View {
                 .tracking(9)
                 .foregroundStyle(
                     LinearGradient(
-                        colors: [
-                            .white,
-                            Color(red: 0.85, green: 0.87, blue: 0.95)
-                        ],
+                        colors: isLight
+                            ? [
+                                Color(red: 0.16, green: 0.19, blue: 0.27),
+                                Color(red: 0.34, green: 0.39, blue: 0.48)
+                            ]
+                            : [
+                                .white,
+                                Color(red: 0.85, green: 0.87, blue: 0.95)
+                            ],
                         startPoint: .top,
                         endPoint: .bottom
                     )
                 )
-                .shadow(color: .black.opacity(0.5), radius: 8)
+                .shadow(
+                    color: isLight
+                        ? .white.opacity(0.7)
+                        : .black.opacity(0.5),
+                    radius: 8
+                )
 
             HStack(spacing: 12) {
                 Rectangle()
-                    .fill(gold.opacity(0.5))
+                    .fill(gold.opacity(0.65))
                     .frame(width: 32, height: 1)
 
                 Text("LAUNCHER")
                     .font(.system(size: 11, weight: .semibold))
                     .tracking(7)
-                    .foregroundStyle(gold)
+                    .foregroundStyle(
+                        isLight
+                            ? Color(red: 0.62, green: 0.39, blue: 0.14)
+                            : gold
+                    )
 
                 Rectangle()
-                    .fill(gold.opacity(0.5))
+                    .fill(gold.opacity(0.65))
                     .frame(width: 32, height: 1)
             }
 
             Text("YOUR ADVENTURE BEGINS HERE")
                 .font(.system(size: 9, weight: .medium))
                 .tracking(2.5)
-                .foregroundStyle(.white.opacity(0.4))
+                .foregroundStyle(secondaryText)
                 .padding(.top, 9)
         }
         .offset(y: 145)
@@ -309,7 +392,7 @@ struct SplashScreenView: View {
             Text("PREPARING YOUR REALM")
                 .font(.system(size: 9, weight: .medium))
                 .tracking(2.5)
-                .foregroundStyle(.white.opacity(0.4))
+                .foregroundStyle(secondaryText)
         }
         .offset(y: 255)
         .opacity(contentVisible ? 1 : 0)
