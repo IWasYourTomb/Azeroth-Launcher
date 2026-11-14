@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>SUPublicEDKey</key>
+	<string>k2dBcnix/IbbeGWWdFvXT6F6OkOeQhGj6kKotf2EF5U=</string>
+	<key>LSFileQuarantineExcludedPathPatterns</key>
+	<array>
+		<string>~/Library/Containers/my.Azeroth-Launcher/Data/Library/Application Support/AzerothLauncher/Downloads/*</string>
+		<string>~/Library/Containers/my.Azeroth-Launcher/Data/Library/Application Support/AzerothLauncher/Runtimes/*</string>
+	</array>
+</dict>
+</plist>
