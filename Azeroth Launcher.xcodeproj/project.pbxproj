@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		B138F27D309F633C004A95F6 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = B138F27C309F633C004A95F6 /* ZIPFoundation */; };
 		B16E10D830A7DA9000204E65 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = B16E10D730A7DA9000204E65 /* Sparkle */; };
-		B16E10DE30A7DC8100204E65 /* Readme.md in Sources */ = {isa = PBXBuildFile; fileRef = B16E10DD30A7DC7900204E65 /* Readme.md */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -138,7 +137,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B16E10DE30A7DC8100204E65 /* Readme.md in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

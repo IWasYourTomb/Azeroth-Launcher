@@ -8,6 +8,7 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(RendererManager.self) private var rendererManager
     @Environment(WineRuntimeManager.self) private var runtimeManager
+    @Environment(UpdaterManager.self) private var updaterManager
 
     @AppStorage("AzerothLauncher.Language")
     private var selectedLanguage = "system"
@@ -22,19 +23,14 @@ struct SettingsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 30) {
                 header
-
                 appearanceSection
-
                 Divider()
-
                 languageSection
-
                 Divider()
-
                 graphicsSection
-
                 Divider()
-
+                updatesSection
+                Divider()
                 wineSection
             }
             .padding(28)
@@ -42,6 +38,7 @@ struct SettingsView: View {
             .frame(maxWidth: .infinity, alignment: .center)
         }
     }
+
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -80,7 +77,12 @@ struct SettingsView: View {
         }
     }
 
-    private func appearanceOption(title: LocalizedStringKey, subtitle: LocalizedStringKey, icon: String, value: String) -> some View {
+    private func appearanceOption(
+        title: LocalizedStringKey,
+        subtitle: LocalizedStringKey,
+        icon: String,
+        value: String
+    ) -> some View {
         let isSelected = selectedAppearance == value
 
         return Button {
@@ -228,6 +230,71 @@ struct SettingsView: View {
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
+    private var updatesSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            sectionHeader(
+                title: "Software Updates",
+                subtitle: "Keep Azeroth Launcher up to date.",
+                icon: "arrow.down.circle"
+            )
+
+            HStack(spacing: 14) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 22))
+                    .foregroundStyle(.orange)
+                    .frame(width: 46, height: 46)
+                    .background(.orange.opacity(0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("Azeroth Launcher")
+                        .font(.system(size: 13, weight: .semibold))
+
+                    Text("Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown")")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                Button {
+                    updaterManager.checkForUpdates()
+                } label: {
+                    HStack(spacing: 8) {
+                        if updaterManager.isUpdateInProgress {
+                            ProgressView()
+                                .controlSize(.small)
+                        } else {
+                            Image(systemName: "arrow.clockwise")
+                        }
+
+                        Text(
+                            updaterManager.isUpdateInProgress
+                                ? "Checking..."
+                                : "Check for Updates"
+                        )
+                    }
+                    .font(.system(size: 12, weight: .semibold))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.orange)
+                .disabled(
+                    !updaterManager.canCheckForUpdates ||
+                    updaterManager.isUpdateInProgress
+                )
+            }
+            .padding(16)
+            .background(.regularMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+
+            Text("Updates are delivered securely through Sparkle.")
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+        }
+    }
+
     private var wineSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             sectionHeader(
@@ -255,6 +322,7 @@ struct SettingsView: View {
                         } else {
                             Image(systemName: "arrow.down.circle")
                         }
+
                         Text(
                             runtimeManager.isInstalling
                                 ? "Installing Wine Runtime..."
@@ -271,10 +339,13 @@ struct SettingsView: View {
             }
 
             if let runtimeError {
-                Label(runtimeError, systemImage: "exclamationmark.triangle.fill")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.red)
-                    .fixedSize(horizontal: false, vertical: true)
+                Label(
+                    runtimeError,
+                    systemImage: "exclamationmark.triangle.fill"
+                )
+                .font(.system(size: 11))
+                .foregroundStyle(.red)
+                .fixedSize(horizontal: false, vertical: true)
             }
 
             if runtimeSuccess {
@@ -374,7 +445,7 @@ struct SettingsView: View {
             }
         }
     }
-
+    
     private func installRuntime() {
         runtimeError = nil
         runtimeSuccess = false

@@ -9,5 +9,10 @@
 		<string>~/Library/Containers/my.Azeroth-Launcher/Data/Library/Application Support/AzerothLauncher/Downloads/*</string>
 		<string>~/Library/Containers/my.Azeroth-Launcher/Data/Library/Application Support/AzerothLauncher/Runtimes/*</string>
 	</array>
+	<key>SUFeedURL</key>
+	<string>https://raw.githubusercontent.com/IWasYourTomb/Azeroth-Launcher/main/appcast.xml</string>
+
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
 </dict>
 </plist>

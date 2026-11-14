@@ -40,6 +40,9 @@ struct Azeroth_LauncherApp: App {
                 .preferredColorScheme(
                     selectedAppearance == "dark" ? .dark : .light
                 )
+                .onAppear {
+                    updaterManager.start()
+                }
         }
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 1000, height: 650)
