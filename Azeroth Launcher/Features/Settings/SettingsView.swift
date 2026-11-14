@@ -19,46 +19,52 @@ struct SettingsView: View {
     @State private var runtimeError: String?
     @State private var runtimeSuccess = false
 
+    private var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 30) {
                 header
+
                 appearanceSection
-                Divider()
                 languageSection
-                Divider()
                 graphicsSection
-                Divider()
                 updatesSection
-                Divider()
                 wineSection
             }
-            .padding(28)
-            .frame(maxWidth: 760, alignment: .leading)
+            .padding(30)
+            .frame(maxWidth: 780, alignment: .leading)
             .frame(maxWidth: .infinity, alignment: .center)
         }
+        .background(LauncherTheme.background)
+        .scrollIndicators(.visible)
     }
 
+    // MARK: - Header
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 7) {
             Text("Settings")
-                .font(.system(size: 28, weight: .bold))
+                .font(.system(size: 29, weight: .bold))
+                .foregroundStyle(LauncherTheme.primaryText)
 
             Text("Customize your Azeroth Launcher experience.")
                 .font(.system(size: 13))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(LauncherTheme.secondaryText)
         }
+        .padding(.bottom, 4)
     }
 
-    private var appearanceSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            sectionHeader(
-                title: "Appearance",
-                subtitle: "Choose how Azeroth Launcher looks.",
-                icon: "paintpalette"
-            )
+    // MARK: - Appearance
 
+    private var appearanceSection: some View {
+        settingsSection(
+            title: "Appearance",
+            subtitle: "Choose how Azeroth Launcher looks.",
+            icon: "paintpalette"
+        ) {
             HStack(spacing: 14) {
                 appearanceOption(
                     title: "Light",
@@ -70,7 +76,7 @@ struct SettingsView: View {
                 appearanceOption(
                     title: "Dark",
                     subtitle: "Dark fantasy atmosphere",
-                    icon: "moon.fill",
+                    icon: "moon.stars.fill",
                     value: "dark"
                 )
             }
@@ -86,113 +92,148 @@ struct SettingsView: View {
         let isSelected = selectedAppearance == value
 
         return Button {
-            selectedAppearance = value
+            withAnimation(.easeInOut(duration: 0.2)) {
+                selectedAppearance = value
+            }
         } label: {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 17) {
                 HStack {
                     Image(systemName: icon)
-                        .font(.system(size: 20))
-                        .foregroundStyle(.orange)
+                        .font(.system(size: 21))
+                        .foregroundStyle(LauncherTheme.accent)
 
                     Spacer()
 
                     if isSelected {
                         Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(.orange)
+                            .font(.system(size: 17))
+                            .foregroundStyle(LauncherTheme.accent)
                     }
                 }
 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 5) {
                     Text(title)
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(LauncherTheme.primaryText)
 
                     Text(subtitle)
                         .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(LauncherTheme.secondaryText)
                 }
             }
-            .padding(16)
+            .padding(17)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 isSelected
-                    ? Color.orange.opacity(0.10)
-                    : Color.primary.opacity(0.035)
+                    ? LauncherTheme.accentBackground
+                    : LauncherTheme.elevatedSurface
             )
+            .clipShape(RoundedRectangle(cornerRadius: 13))
             .overlay {
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(
-                        isSelected ? Color.orange : Color.primary.opacity(0.08),
+                RoundedRectangle(cornerRadius: 13)
+                    .strokeBorder(
+                        isSelected
+                            ? LauncherTheme.accent.opacity(0.8)
+                            : LauncherTheme.separator,
                         lineWidth: isSelected ? 1.5 : 1
                     )
             }
-            .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain)
     }
 
+    // MARK: - Language
+
     private var languageSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            sectionHeader(
-                title: "Language",
-                subtitle: "Choose your launcher language.",
-                icon: "globe"
-            )
+        settingsSection(
+            title: "Language",
+            subtitle: "Choose your launcher language.",
+            icon: "globe"
+        ) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 12) {
+                    Image(systemName: "character.bubble")
+                        .font(.system(size: 17))
+                        .foregroundStyle(LauncherTheme.accent)
+                        .frame(width: 38, height: 38)
+                        .background(LauncherTheme.accentBackground)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
 
-            HStack {
-                Label(
-                    "Application language",
-                    systemImage: "character.bubble"
-                )
-                .font(.system(size: 13, weight: .medium))
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Application language")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(LauncherTheme.primaryText)
 
-                Spacer()
+                        Text("Select your preferred language.")
+                            .font(.system(size: 10))
+                            .foregroundStyle(LauncherTheme.secondaryText)
+                    }
 
-                Picker("Language", selection: $selectedLanguage) {
-                    Text("System Default").tag("system")
-                    Text("English").tag("en")
-                    Text("Русский").tag("ru")
+                    Spacer()
+
+                    Picker("Language", selection: $selectedLanguage) {
+                        Text("System Default").tag("system")
+                        Text("English").tag("en")
+                        Text("Русский").tag("ru")
+                    }
+                    .frame(width: 165)
                 }
-                .frame(width: 180)
-            }
-            .padding(16)
-            .background(.regularMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
 
-            Text("Language selection is saved automatically.")
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
+                Divider()
+                    .overlay(LauncherTheme.separator)
+
+                Label(
+                    "Language selection is saved automatically.",
+                    systemImage: "info.circle"
+                )
+                .font(.system(size: 10))
+                .foregroundStyle(LauncherTheme.secondaryText)
+            }
         }
     }
 
+    // MARK: - Graphics
+
     private var graphicsSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            sectionHeader(
-                title: "Graphics",
-                subtitle: "Configure the renderer for each game edition.",
-                icon: "display"
-            )
+        settingsSection(
+            title: "Graphics",
+            subtitle: "Configure the renderer for each game edition.",
+            icon: "display"
+        ) {
+            VStack(spacing: 12) {
+                ForEach(GameEdition.allCases) { edition in
+                    rendererRow(for: edition)
+                }
 
-            ForEach(GameEdition.allCases) { edition in
-                rendererRow(for: edition)
+                Label(
+                    "Renderer changes apply to the selected game edition.",
+                    systemImage: "info.circle"
+                )
+                .font(.system(size: 10))
+                .foregroundStyle(LauncherTheme.secondaryText)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.top, 3)
             }
-
-            Text("Renderer changes apply to the selected game edition.")
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
         }
     }
 
     private func rendererRow(for edition: GameEdition) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
+        VStack(alignment: .leading, spacing: 11) {
+            HStack(spacing: 12) {
+                Image(edition.backgroundImageName)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 48, height: 48)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+
                 VStack(alignment: .leading, spacing: 5) {
                     Text(edition.title)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(LauncherTheme.primaryText)
 
                     Text("Version \(edition.version)")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
+                        .font(.system(size: 10))
+                        .foregroundStyle(LauncherTheme.secondaryText)
                 }
 
                 Spacer()
@@ -213,206 +254,236 @@ struct SettingsView: View {
                             .tag(renderer)
                     }
                 }
-                .frame(width: 190)
+                .frame(width: 175)
             }
 
             HStack(spacing: 7) {
                 Image(systemName: "info.circle")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(LauncherTheme.accent)
 
                 Text(rendererManager.renderer(for: edition).description)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(LauncherTheme.secondaryText)
             }
-            .font(.system(size: 11))
+            .font(.system(size: 10))
+            .padding(.leading, 2)
         }
-        .padding(16)
-        .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .padding(13)
+        .background(LauncherTheme.elevatedSurface)
+        .clipShape(RoundedRectangle(cornerRadius: 11))
+        .overlay {
+            RoundedRectangle(cornerRadius: 11)
+                .strokeBorder(LauncherTheme.separator, lineWidth: 1)
+        }
     }
+
+    // MARK: - Software Updates
 
     private var updatesSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            sectionHeader(
-                title: "Software Updates",
-                subtitle: "Keep Azeroth Launcher up to date.",
-                icon: "arrow.down.circle"
-            )
+        settingsSection(
+            title: "Software Updates",
+            subtitle: "Keep Azeroth Launcher up to date.",
+            icon: "arrow.down.circle"
+        ) {
+            VStack(alignment: .leading, spacing: 13) {
+                HStack(spacing: 13) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 21))
+                        .foregroundStyle(LauncherTheme.accent)
+                        .frame(width: 48, height: 48)
+                        .background(LauncherTheme.accentBackground)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
 
-            HStack(spacing: 14) {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 22))
-                    .foregroundStyle(.orange)
-                    .frame(width: 46, height: 46)
-                    .background(.orange.opacity(0.12))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text("Azeroth Launcher")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(LauncherTheme.primaryText)
 
-                VStack(alignment: .leading, spacing: 5) {
-                    Text("Azeroth Launcher")
-                        .font(.system(size: 13, weight: .semibold))
-
-                    Text("Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown")")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-
-                Button {
-                    updaterManager.checkForUpdates()
-                } label: {
-                    HStack(spacing: 8) {
-                        if updaterManager.isUpdateInProgress {
-                            ProgressView()
-                                .controlSize(.small)
-                        } else {
-                            Image(systemName: "arrow.clockwise")
-                        }
-
-                        Text(
-                            updaterManager.isUpdateInProgress
-                                ? "Checking..."
-                                : "Check for Updates"
-                        )
+                        Text("Version \(appVersion)")
+                            .font(.system(size: 10))
+                            .foregroundStyle(LauncherTheme.secondaryText)
                     }
-                    .font(.system(size: 12, weight: .semibold))
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.orange)
-                .disabled(
-                    !updaterManager.canCheckForUpdates ||
-                    updaterManager.isUpdateInProgress
-                )
-            }
-            .padding(16)
-            .background(.regularMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
 
-            Text("Updates are delivered securely through Sparkle.")
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
+                    Spacer()
+
+                    Button {
+                        updaterManager.checkForUpdates()
+                    } label: {
+                        HStack(spacing: 8) {
+                            if updaterManager.isUpdateInProgress {
+                                ProgressView()
+                                    .controlSize(.small)
+                            } else {
+                                Image(systemName: "arrow.clockwise")
+                            }
+
+                            Text(
+                                updaterManager.isUpdateInProgress
+                                    ? "Checking..."
+                                    : "Check for Updates"
+                            )
+                            .font(.system(size: 11, weight: .semibold))
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 9)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(LauncherTheme.accent)
+                    .disabled(
+                        !updaterManager.canCheckForUpdates ||
+                        updaterManager.isUpdateInProgress
+                    )
+                }
+
+                Divider()
+                    .overlay(LauncherTheme.separator)
+
+                Label(
+                    "Updates are delivered securely through Sparkle.",
+                    systemImage: "lock.shield"
+                )
+                .font(.system(size: 10))
+                .foregroundStyle(LauncherTheme.secondaryText)
+            }
         }
     }
 
+    // MARK: - Wine Runtime
+
     private var wineSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            sectionHeader(
-                title: "Wine Runtime",
-                subtitle: "Manage compatibility layers.",
-                icon: "shippingbox"
-            )
-
-            if runtimeManager.runtimes.isEmpty {
-                emptyRuntimeState
-            } else {
-                ForEach(runtimeManager.runtimes) { runtime in
-                    runtimeRow(runtime)
-                }
-            }
-
-            if runtimeManager.runtimes.isEmpty {
-                Button {
-                    installRuntime()
-                } label: {
-                    HStack(spacing: 9) {
-                        if runtimeManager.isInstalling {
-                            ProgressView()
-                                .controlSize(.small)
-                        } else {
-                            Image(systemName: "arrow.down.circle")
-                        }
-
-                        Text(
-                            runtimeManager.isInstalling
-                                ? "Installing Wine Runtime..."
-                                : "Install Wine Runtime"
-                        )
+        settingsSection(
+            title: "Wine Runtime",
+            subtitle: "Manage compatibility layers.",
+            icon: "shippingbox"
+        ) {
+            VStack(alignment: .leading, spacing: 13) {
+                if runtimeManager.runtimes.isEmpty {
+                    emptyRuntimeState
+                } else {
+                    ForEach(runtimeManager.runtimes) { runtime in
+                        runtimeRow(runtime)
                     }
-                    .font(.system(size: 13, weight: .semibold))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 11)
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(.orange)
-                .disabled(runtimeManager.isInstalling)
-            }
 
-            if let runtimeError {
+                if runtimeManager.runtimes.isEmpty {
+                    Button {
+                        installRuntime()
+                    } label: {
+                        HStack(spacing: 9) {
+                            if runtimeManager.isInstalling {
+                                ProgressView()
+                                    .controlSize(.small)
+                            } else {
+                                Image(systemName: "arrow.down.circle.fill")
+                            }
+
+                            Text(
+                                runtimeManager.isInstalling
+                                    ? "Installing Wine Runtime..."
+                                    : "Install Wine Runtime"
+                            )
+                            .font(.system(size: 12, weight: .semibold))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(LauncherTheme.accent)
+                    .disabled(runtimeManager.isInstalling)
+                }
+
+                if let runtimeError {
+                    Label(
+                        runtimeError,
+                        systemImage: "exclamationmark.triangle.fill"
+                    )
+                    .font(.system(size: 11))
+                    .foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true)
+                }
+
+                if runtimeSuccess {
+                    Label(
+                        "Wine Runtime installed successfully.",
+                        systemImage: "checkmark.circle.fill"
+                    )
+                    .font(.system(size: 11))
+                    .foregroundStyle(.green)
+                }
+
+                Divider()
+                    .overlay(LauncherTheme.separator)
+
                 Label(
-                    runtimeError,
-                    systemImage: "exclamationmark.triangle.fill"
+                    "One Wine Runtime can be shared between multiple game installations. Each game keeps its own Prefix.",
+                    systemImage: "info.circle"
                 )
-                .font(.system(size: 11))
-                .foregroundStyle(.red)
+                .font(.system(size: 10))
+                .foregroundStyle(LauncherTheme.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
             }
-
-            if runtimeSuccess {
-                Label(
-                    "Wine Runtime installed successfully.",
-                    systemImage: "checkmark.circle.fill"
-                )
-                .font(.system(size: 11))
-                .foregroundStyle(.green)
-            }
-
-            Text("One Wine Runtime can be shared between multiple game installations. Each game keeps its own Prefix.")
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
         }
     }
 
     private var emptyRuntimeState: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 13) {
             Image(systemName: "shippingbox")
-                .font(.system(size: 24))
-                .foregroundStyle(.orange)
-                .frame(width: 46, height: 46)
-                .background(.orange.opacity(0.12))
+                .font(.system(size: 23))
+                .foregroundStyle(LauncherTheme.accent)
+                .frame(width: 48, height: 48)
+                .background(LauncherTheme.accentBackground)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
 
             VStack(alignment: .leading, spacing: 5) {
                 Text("No Wine Runtime installed")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(LauncherTheme.primaryText)
 
                 Text("Install a Wine Runtime to run World of Warcraft.")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 10))
+                    .foregroundStyle(LauncherTheme.secondaryText)
             }
 
-            Spacer()
+            Spacer(minLength: 0)
         }
-        .padding(16)
+        .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .background(LauncherTheme.elevatedSurface)
+        .clipShape(RoundedRectangle(cornerRadius: 11))
+        .overlay {
+            RoundedRectangle(cornerRadius: 11)
+                .strokeBorder(LauncherTheme.separator, lineWidth: 1)
+        }
     }
 
     private func runtimeRow(_ runtime: WineRuntime) -> some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 13) {
             Image(systemName: "shippingbox.fill")
-                .font(.system(size: 20))
-                .foregroundStyle(.orange)
-                .frame(width: 42, height: 42)
-                .background(.orange.opacity(0.12))
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .font(.system(size: 19))
+                .foregroundStyle(LauncherTheme.accent)
+                .frame(width: 44, height: 44)
+                .background(LauncherTheme.accentBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 11))
 
             VStack(alignment: .leading, spacing: 5) {
                 Text(runtime.name)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(LauncherTheme.primaryText)
 
                 Text("Version \(runtime.version)")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 10))
+                    .foregroundStyle(LauncherTheme.secondaryText)
             }
 
             Spacer()
 
             if runtime.isDefault {
                 Label("Default", systemImage: "checkmark.circle.fill")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(.green)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 7)
+                    .background(Color.green.opacity(0.1))
+                    .clipShape(Capsule())
             } else {
                 Button("Set Default") {
                     runtimeManager.setDefault(id: runtime.id)
@@ -421,31 +492,56 @@ struct SettingsView: View {
                 .controlSize(.small)
             }
         }
-        .padding(16)
-        .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-    }
-
-    private func sectionHeader(title: LocalizedStringKey, subtitle: LocalizedStringKey, icon: String) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.system(size: 19))
-                .foregroundStyle(.orange)
-                .frame(width: 42, height: 42)
-                .background(.orange.opacity(0.12))
-                .clipShape(RoundedRectangle(cornerRadius: 11))
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.system(size: 16, weight: .bold))
-
-                Text(subtitle)
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-            }
+        .padding(13)
+        .background(LauncherTheme.elevatedSurface)
+        .clipShape(RoundedRectangle(cornerRadius: 11))
+        .overlay {
+            RoundedRectangle(cornerRadius: 11)
+                .strokeBorder(LauncherTheme.separator, lineWidth: 1)
         }
     }
-    
+
+    // MARK: - Shared Components
+
+    private func settingsSection<Content: View>(
+        title: LocalizedStringKey,
+        subtitle: LocalizedStringKey,
+        icon: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 15) {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.system(size: 18))
+                    .foregroundStyle(LauncherTheme.accent)
+                    .frame(width: 42, height: 42)
+                    .background(LauncherTheme.accentBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: 11))
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(LauncherTheme.primaryText)
+
+                    Text(subtitle)
+                        .font(.system(size: 11))
+                        .foregroundStyle(LauncherTheme.secondaryText)
+                }
+            }
+
+            content()
+                .padding(16)
+                .background(LauncherTheme.surface)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14)
+                        .strokeBorder(LauncherTheme.separator, lineWidth: 1)
+                }
+        }
+    }
+
+    // MARK: - Runtime Installation
+
     private func installRuntime() {
         runtimeError = nil
         runtimeSuccess = false

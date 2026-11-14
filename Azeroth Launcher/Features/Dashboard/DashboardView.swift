@@ -19,16 +19,10 @@ struct DashboardView: View {
                 selectedSection: $selectedSection
             )
 
-            Rectangle()
-                .fill(.white.opacity(0.07))
-                .frame(width: 1)
-
             mainContent
         }
         .frame(minWidth: 1000, minHeight: 650)
-        .background(
-            Color(nsColor: .windowBackgroundColor)
-        )
+        .background(LauncherTheme.background)
         .sheet(isPresented: $isInstallationWizardPresented) {
             InstallationWizardView()
                 .environment(\.locale, appLocale)
@@ -39,12 +33,18 @@ struct DashboardView: View {
         VStack(spacing: 0) {
             header
 
+            Rectangle()
+                .fill(LauncherTheme.separator)
+                .frame(height: 1)
+
             ScrollView {
                 Group {
                     switch selectedSection {
                     case .home:
                         HomeView {
-                            selectedSection = .games
+                            withAnimation(.easeInOut(duration: 0.25)) {
+                                selectedSection = .games
+                            }
                         }
 
                     case .games:
@@ -57,20 +57,23 @@ struct DashboardView: View {
                     }
                 }
                 .padding(30)
+                .frame(maxWidth: .infinity, alignment: .topLeading)
             }
+            .scrollIndicators(.hidden)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var header: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
+        HStack(spacing: 20) {
+            VStack(alignment: .leading, spacing: 5) {
                 Text(selectedSection.title)
-                    .font(.system(size: 22, weight: .bold))
+                    .font(.system(size: 23, weight: .bold))
+                    .foregroundStyle(LauncherTheme.primaryText)
 
                 Text(selectedSection.subtitle)
                     .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(LauncherTheme.secondaryText)
             }
 
             Spacer()
@@ -81,14 +84,45 @@ struct DashboardView: View {
                 } label: {
                     Label("Add Game", systemImage: "plus")
                         .font(.system(size: 12, weight: .semibold))
-                        .padding(.horizontal, 5)
+                        .foregroundStyle(LauncherTheme.background)
+                        .padding(.horizontal, 17)
+                        .frame(height: 38)
+                        .background {
+                            LinearGradient(
+                                colors: [
+                                    LauncherTheme.accent,
+                                    LauncherTheme.accent.opacity(0.8)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        }
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(.orange)
+                .buttonStyle(.plain)
+            }
+
+            HStack(spacing: 7) {
+                Circle()
+                    .fill(.green)
+                    .frame(width: 6, height: 6)
+
+                Text("AZEROTH")
+                    .font(.system(size: 9, weight: .bold))
+                    .tracking(1.5)
+                    .foregroundStyle(LauncherTheme.secondaryText)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 9)
+            .background(LauncherTheme.surface)
+            .clipShape(Capsule())
+            .overlay {
+                Capsule()
+                    .stroke(LauncherTheme.separator, lineWidth: 1)
             }
         }
         .padding(.horizontal, 30)
         .padding(.vertical, 20)
-        .background(.ultraThinMaterial)
+        .background(LauncherTheme.background)
     }
 }

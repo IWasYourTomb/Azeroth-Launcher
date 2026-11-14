@@ -25,23 +25,33 @@ struct RealmRowView: View {
     )
 
     var body: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 13) {
             Image(systemName: "server.rack")
-                .font(.system(size: 18))
-                .foregroundStyle(.orange)
-                .frame(width: 42, height: 42)
-                .background(.orange.opacity(0.12))
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .font(.system(size: 17))
+                .foregroundStyle(
+                    isCurrent
+                        ? LauncherTheme.accent
+                        : LauncherTheme.accentSecondary
+                )
+                .frame(width: 44, height: 44)
+                .background(
+                    isCurrent
+                        ? LauncherTheme.accentBackground
+                        : LauncherTheme.elevatedSurface
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 12))
 
-            VStack(alignment: .leading, spacing: 5) {
+            VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 8) {
                     Text(server.name)
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(LauncherTheme.primaryText)
+                        .lineLimit(1)
 
                     if isCurrent {
                         Text("CURRENT")
-                            .font(.system(size: 9, weight: .bold))
-                            .tracking(1)
+                            .font(.system(size: 8, weight: .bold))
+                            .tracking(0.8)
                             .foregroundStyle(.green)
                             .padding(.horizontal, 7)
                             .padding(.vertical, 4)
@@ -51,13 +61,14 @@ struct RealmRowView: View {
                 }
 
                 Text(server.address)
-                    .font(.system(size: 12, design: .monospaced))
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(LauncherTheme.secondaryText)
+                    .lineLimit(1)
 
                 connectionStatusView
             }
 
-            Spacer()
+            Spacer(minLength: 8)
 
             Button {
                 checkConnection()
@@ -68,23 +79,28 @@ struct RealmRowView: View {
                             .controlSize(.small)
                     } else {
                         Image(systemName: "network")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.system(size: 13, weight: .medium))
                     }
                 }
-                .frame(width: 30, height: 30)
-                .contentShape(Rectangle())
+                .foregroundStyle(LauncherTheme.secondaryText)
+                .frame(width: 32, height: 32)
+                .background(LauncherTheme.elevatedSurface)
+                .clipShape(RoundedRectangle(cornerRadius: 9))
             }
-            .buttonStyle(.borderless)
+            .buttonStyle(.plain)
             .disabled(connectionStatus == .checking)
             .help("Check connection")
 
             if !isCurrent {
                 Button(action: onApply) {
                     Image(systemName: "checkmark")
-                        .font(.system(size: 12, weight: .bold))
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 32, height: 32)
+                        .background(LauncherTheme.accent)
+                        .clipShape(RoundedRectangle(cornerRadius: 9))
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(.orange)
+                .buttonStyle(.plain)
                 .help("Apply realm")
             }
 
@@ -107,20 +123,23 @@ struct RealmRowView: View {
             } label: {
                 Image(systemName: "ellipsis")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 30, height: 30)
+                    .foregroundStyle(LauncherTheme.secondaryText)
+                    .frame(width: 30, height: 32)
                     .contentShape(Rectangle())
             }
             .menuStyle(.borderlessButton)
         }
-        .padding(14)
-        .background {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(.white.opacity(0.035))
-        }
+        .padding(13)
+        .background(LauncherTheme.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 13))
         .overlay {
-            RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(.white.opacity(0.07), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 13)
+                .strokeBorder(
+                    isCurrent
+                        ? LauncherTheme.accent.opacity(0.35)
+                        : LauncherTheme.separator,
+                    lineWidth: 1
+                )
         }
         .onDisappear {
             stopConnection()
@@ -134,7 +153,7 @@ struct RealmRowView: View {
                 .frame(width: 6, height: 6)
 
             Text(statusTitle)
-                .font(.system(size: 10, weight: .medium))
+                .font(.system(size: 9, weight: .medium))
                 .foregroundStyle(statusColor)
         }
     }
@@ -155,9 +174,9 @@ struct RealmRowView: View {
     private var statusColor: Color {
         switch connectionStatus {
         case .unknown:
-            return .secondary
+            return LauncherTheme.secondaryText
         case .checking:
-            return .orange
+            return LauncherTheme.accent
         case .online:
             return .green
         case .offline:

@@ -30,7 +30,7 @@ struct GameLaunchSettingsView: View {
             header
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: 25) {
                     rendererSection
                     generalSection
                     wineSection
@@ -38,11 +38,12 @@ struct GameLaunchSettingsView: View {
                     environmentSection
                     resetSection
                 }
-                .padding(26)
+                .padding(28)
             }
+            .scrollIndicators(.visible)
         }
-        .frame(minWidth: 650, minHeight: 700)
-        .background(Color(nsColor: .windowBackgroundColor))
+        .frame(minWidth: 680, minHeight: 720)
+        .background(LauncherTheme.background)
         .onAppear {
             settings = appState.launchSettingsManager.settings(
                 for: installation.edition
@@ -56,90 +57,138 @@ struct GameLaunchSettingsView: View {
         }
     }
 
+    // MARK: - Header
+
     private var header: some View {
-        HStack {
+        HStack(spacing: 15) {
+            Image(systemName: "slider.horizontal.3")
+                .font(.system(size: 22))
+                .foregroundStyle(LauncherTheme.accent)
+                .frame(width: 50, height: 50)
+                .background(LauncherTheme.accentBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+
             VStack(alignment: .leading, spacing: 5) {
                 Text("Launch Settings")
-                    .font(.system(size: 20, weight: .bold))
+                    .font(.system(size: 21, weight: .bold))
+                    .foregroundStyle(LauncherTheme.primaryText)
 
                 Text(installation.edition.title)
-                    .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(LauncherTheme.secondaryText)
             }
 
             Spacer()
 
-            Button("Done") {
+            Button {
                 dismiss()
+            } label: {
+                HStack(spacing: 7) {
+                    Text("Done")
+                    Image(systemName: "checkmark")
+                }
+                .font(.system(size: 12, weight: .semibold))
+                .padding(.horizontal, 17)
+                .padding(.vertical, 9)
             }
             .buttonStyle(.borderedProminent)
-            .tint(.orange)
+            .tint(LauncherTheme.accent)
         }
-        .padding(24)
-        .background(.ultraThinMaterial)
+        .padding(.horizontal, 28)
+        .padding(.vertical, 20)
+        .background(LauncherTheme.sidebar)
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(LauncherTheme.separator)
+                .frame(height: 1)
+        }
     }
+
+    // MARK: - Renderer
 
     private var rendererSection: some View {
         settingsSection(
             title: "Graphics Renderer",
-            subtitle: "The renderer is configured in application settings.",
+            subtitle: "The graphics backend used to run your game client.",
             icon: "display"
         ) {
-            HStack(spacing: 14) {
+            HStack(spacing: 15) {
                 Image(systemName: "display")
-                    .font(.system(size: 22))
-                    .foregroundStyle(.orange)
+                    .font(.system(size: 23))
+                    .foregroundStyle(LauncherTheme.accent)
+                    .frame(width: 48, height: 48)
+                    .background(LauncherTheme.accentBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: 13))
 
                 VStack(alignment: .leading, spacing: 5) {
                     Text(renderer.title)
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(LauncherTheme.primaryText)
 
                     Text(renderer.description)
                         .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(LauncherTheme.secondaryText)
                 }
 
                 Spacer()
 
-                Text("GLOBAL")
-                    .font(.system(size: 9, weight: .bold))
-                    .tracking(1)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(.green)
+                        .frame(width: 6, height: 6)
+
+                    Text("GLOBAL")
+                        .font(.system(size: 9, weight: .bold))
+                        .tracking(1)
+                }
+                .foregroundStyle(LauncherTheme.secondaryText)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 7)
+                .background(LauncherTheme.elevatedSurface)
+                .clipShape(Capsule())
             }
             .padding(15)
-            .background(.regularMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .background(LauncherTheme.elevatedSurface)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
         }
     }
+
+    // MARK: - General
 
     private var generalSection: some View {
         settingsSection(
             title: "General",
-            subtitle: "Configure game startup behavior.",
+            subtitle: "Configure game startup behavior and compatibility options.",
             icon: "gamecontroller"
         ) {
-            VStack(alignment: .leading, spacing: 16) {
-                Toggle(
-                    "Enable DXVK Async",
+            VStack(alignment: .leading, spacing: 17) {
+                settingToggle(
+                    title: "Enable DXVK Async",
+                    subtitle: "Enable asynchronous shader compilation.",
+                    icon: "bolt.fill",
                     isOn: $settings.dxvkAsyncEnabled
                 )
                 .disabled(renderer != .dxvk)
+                .opacity(renderer == .dxvk ? 1 : 0.55)
 
                 if renderer != .dxvk {
-                    Text("DXVK Async is available only when using DXVK.")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
+                    informationNotice(
+                        "DXVK Async is available only when using DXVK.",
+                        icon: "info.circle"
+                    )
                 }
 
-                Divider()
+                sectionDivider
 
-                Toggle(
-                    "Virtual Desktop",
+                settingToggle(
+                    title: "Virtual Desktop",
+                    subtitle: "Run the game inside a virtual desktop window.",
+                    icon: "macwindow",
                     isOn: $settings.virtualDesktopEnabled
                 )
 
                 if settings.virtualDesktopEnabled {
-                    HStack {
+                    HStack(spacing: 15) {
                         resolutionField(
                             title: "Width",
                             value: $settings.virtualDesktopWidth
@@ -149,18 +198,28 @@ struct GameLaunchSettingsView: View {
                             title: "Height",
                             value: $settings.virtualDesktopHeight
                         )
+
+                        Spacer()
                     }
+                    .padding(.leading, 34)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
                 }
 
-                Divider()
+                sectionDivider
 
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Launch Arguments")
-                        .font(.system(size: 12, weight: .semibold))
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "terminal")
+                            .foregroundStyle(LauncherTheme.accent)
 
-                    Text("Enter one argument per line.")
+                        Text("Launch Arguments")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(LauncherTheme.primaryText)
+                    }
+
+                    Text("Enter one argument per line. These arguments are passed to the game process.")
                         .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(LauncherTheme.secondaryText)
 
                     TextEditor(
                         text: Binding(
@@ -170,89 +229,117 @@ struct GameLaunchSettingsView: View {
                             set: {
                                 settings.launchArguments = $0
                                     .components(separatedBy: .newlines)
-                                    .map { $0.trimmingCharacters(in: .whitespaces) }
+                                    .map {
+                                        $0.trimmingCharacters(in: .whitespaces)
+                                    }
                                     .filter { !$0.isEmpty }
                             }
                         )
                     )
-                    .font(.system(size: 12, design: .monospaced))
-                    .frame(minHeight: 85)
-                    .padding(5)
-                    .background(.regularMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundStyle(LauncherTheme.primaryText)
+                    .scrollContentBackground(.hidden)
+                    .frame(minHeight: 90)
+                    .padding(10)
+                    .background(LauncherTheme.elevatedSurface)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 10)
+                            .strokeBorder(LauncherTheme.separator, lineWidth: 1)
+                    }
                 }
             }
         }
     }
+
+    // MARK: - Wine
 
     private var wineSection: some View {
         settingsSection(
             title: "Wine Configuration",
-            subtitle: "Configure Wine debugging and compatibility.",
+            subtitle: "Configure Wine debugging and compatibility behavior.",
             icon: "wineglass"
         ) {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Wine Debug")
-                    .font(.system(size: 12, weight: .semibold))
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 8) {
+                    Image(systemName: "terminal.fill")
+                        .foregroundStyle(LauncherTheme.accent)
 
-                TextField("Example: -all", text: $settings.wineDebug)
-                    .textFieldStyle(.roundedBorder)
+                    Text("Wine Debug")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(LauncherTheme.primaryText)
+                }
 
-                Text("Controls Wine diagnostic output.")
+                themedTextField(
+                    placeholder: "Example: -all",
+                    text: $settings.wineDebug,
+                    monospaced: true
+                )
+
+                Text("Controls Wine diagnostic output. Use -all to disable most debug messages.")
                     .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(LauncherTheme.secondaryText)
             }
         }
     }
 
+    // MARK: - DLL Overrides
+
     private var dllOverridesSection: some View {
         settingsSection(
             title: "DLL Overrides",
-            subtitle: "Configure custom DLL loading behavior.",
+            subtitle: "Customize how Wine loads specific Windows libraries.",
             icon: "puzzlepiece"
         ) {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 13) {
                 if settings.dllOverrides.isEmpty {
-                    emptyState("No custom DLL overrides.")
-                }
-
-                ForEach(settings.dllOverrides.keys.sorted(), id: \.self) { key in
-                    HStack {
-                        Text(key)
-                            .font(.system(size: 11, weight: .medium))
-                            .frame(width: 130, alignment: .leading)
-
-                        TextField(
-                            "Override value",
-                            text: dictionaryBinding(
-                                for: key,
-                                in: \.dllOverrides
+                    emptyState(
+                        title: "No DLL overrides",
+                        description: "Custom DLL loading rules will appear here.",
+                        icon: "puzzlepiece"
+                    )
+                } else {
+                    VStack(spacing: 9) {
+                        ForEach(
+                            settings.dllOverrides.keys.sorted(),
+                            id: \.self
+                        ) { key in
+                            dictionaryRow(
+                                name: key,
+                                value: dictionaryBinding(
+                                    for: key,
+                                    in: \.dllOverrides
+                                ),
+                                onDelete: {
+                                    settings.dllOverrides.removeValue(forKey: key)
+                                }
                             )
-                        )
-                        .textFieldStyle(.roundedBorder)
-
-                        Button(role: .destructive) {
-                            settings.dllOverrides.removeValue(forKey: key)
-                        } label: {
-                            Image(systemName: "trash")
                         }
-                        .buttonStyle(.borderless)
                     }
                 }
 
-                Divider()
+                sectionDivider
 
-                HStack {
-                    TextField("DLL name", text: $newDLLName)
-                        .textFieldStyle(.roundedBorder)
+                Text("ADD DLL OVERRIDE")
+                    .font(.system(size: 9, weight: .bold))
+                    .tracking(1.2)
+                    .foregroundStyle(LauncherTheme.secondaryText)
 
-                    TextField("Value", text: $newDLLValue)
-                        .textFieldStyle(.roundedBorder)
+                HStack(spacing: 9) {
+                    themedTextField(
+                        placeholder: "DLL name",
+                        text: $newDLLName,
+                        monospaced: true
+                    )
 
-                    Button {
+                    themedTextField(
+                        placeholder: "Override value",
+                        text: $newDLLValue,
+                        monospaced: true
+                    )
+
+                    addButton {
                         addDLLOverride()
-                    } label: {
-                        Image(systemName: "plus")
                     }
                     .disabled(
                         newDLLName.trimmingCharacters(in: .whitespaces).isEmpty ||
@@ -263,60 +350,65 @@ struct GameLaunchSettingsView: View {
         }
     }
 
+    // MARK: - Environment Variables
+
     private var environmentSection: some View {
         settingsSection(
             title: "Environment Variables",
             subtitle: "Additional variables passed to the game process.",
             icon: "terminal"
         ) {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 13) {
                 if settings.environmentVariables.isEmpty {
-                    emptyState("No custom environment variables.")
-                }
-
-                ForEach(settings.environmentVariables.keys.sorted(), id: \.self) { key in
-                    HStack {
-                        Text(key)
-                            .font(.system(size: 11, weight: .medium))
-                            .frame(width: 150, alignment: .leading)
-
-                        TextField(
-                            "Value",
-                            text: dictionaryBinding(
-                                for: key,
-                                in: \.environmentVariables
+                    emptyState(
+                        title: "No environment variables",
+                        description: "Custom environment variables will appear here.",
+                        icon: "terminal"
+                    )
+                } else {
+                    VStack(spacing: 9) {
+                        ForEach(
+                            settings.environmentVariables.keys.sorted(),
+                            id: \.self
+                        ) { key in
+                            dictionaryRow(
+                                name: key,
+                                value: dictionaryBinding(
+                                    for: key,
+                                    in: \.environmentVariables
+                                ),
+                                onDelete: {
+                                    settings.environmentVariables.removeValue(
+                                        forKey: key
+                                    )
+                                }
                             )
-                        )
-                        .textFieldStyle(.roundedBorder)
-
-                        Button(role: .destructive) {
-                            settings.environmentVariables.removeValue(forKey: key)
-                        } label: {
-                            Image(systemName: "trash")
                         }
-                        .buttonStyle(.borderless)
                     }
                 }
 
-                Divider()
+                sectionDivider
 
-                HStack {
-                    TextField(
-                        "Variable name",
-                        text: $newEnvironmentName
+                Text("ADD ENVIRONMENT VARIABLE")
+                    .font(.system(size: 9, weight: .bold))
+                    .tracking(1.2)
+                    .foregroundStyle(LauncherTheme.secondaryText)
+
+                HStack(spacing: 9) {
+                    themedTextField(
+                        placeholder: "Variable name",
+                        text: $newEnvironmentName,
+                        monospaced: true
                     )
-                    .textFieldStyle(.roundedBorder)
 
-                    TextField(
-                        "Value",
-                        text: $newEnvironmentValue
+                    themedTextField(
+                        placeholder: "Value",
+                        text: $newEnvironmentValue,
+                        monospaced: true
                     )
-                    .textFieldStyle(.roundedBorder)
 
-                    Button {
+                    addButton {
                         addEnvironmentVariable()
-                    } label: {
-                        Image(systemName: "plus")
                     }
                     .disabled(
                         newEnvironmentName.trimmingCharacters(in: .whitespaces).isEmpty
@@ -326,15 +418,25 @@ struct GameLaunchSettingsView: View {
         }
     }
 
+    // MARK: - Reset
+
     private var resetSection: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
+        HStack(spacing: 14) {
+            Image(systemName: "arrow.counterclockwise")
+                .font(.system(size: 17))
+                .foregroundStyle(.red)
+                .frame(width: 42, height: 42)
+                .background(.red.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: 11))
+
+            VStack(alignment: .leading, spacing: 5) {
                 Text("Reset Settings")
                     .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(LauncherTheme.primaryText)
 
                 Text("Restore default launch settings for this edition.")
                     .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(LauncherTheme.secondaryText)
             }
 
             Spacer()
@@ -343,11 +445,18 @@ struct GameLaunchSettingsView: View {
                 settings = .default
             }
             .buttonStyle(.bordered)
+            .controlSize(.regular)
         }
         .padding(16)
-        .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .background(LauncherTheme.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 13))
+        .overlay {
+            RoundedRectangle(cornerRadius: 13)
+                .strokeBorder(LauncherTheme.separator, lineWidth: 1)
+        }
     }
+
+    // MARK: - Components
 
     private func settingsSection<Content: View>(
         title: LocalizedStringKey,
@@ -355,56 +464,223 @@ struct GameLaunchSettingsView: View {
         icon: String,
         @ViewBuilder content: () -> Content
     ) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 11) {
+        VStack(alignment: .leading, spacing: 13) {
+            HStack(spacing: 12) {
                 Image(systemName: icon)
-                    .font(.system(size: 17))
-                    .foregroundStyle(.orange)
+                    .font(.system(size: 16))
+                    .foregroundStyle(LauncherTheme.accent)
                     .frame(width: 40, height: 40)
-                    .background(.orange.opacity(0.12))
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .background(LauncherTheme.accentBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: 11))
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(LauncherTheme.primaryText)
 
                     Text(subtitle)
                         .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(LauncherTheme.secondaryText)
                 }
             }
 
             content()
-                .padding(16)
-                .background(.regularMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding(17)
+                .background(LauncherTheme.surface)
+                .clipShape(RoundedRectangle(cornerRadius: 13))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 13)
+                        .strokeBorder(LauncherTheme.separator, lineWidth: 1)
+                }
         }
     }
 
-    private func resolutionField(title: LocalizedStringKey, value: Binding<Int>) -> some View {
-        VStack(alignment: .leading, spacing: 5) {
+    private func settingToggle(
+        title: LocalizedStringKey,
+        subtitle: LocalizedStringKey,
+        icon: String,
+        isOn: Binding<Bool>
+    ) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 14))
+                .foregroundStyle(LauncherTheme.accent)
+                .frame(width: 22)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(LauncherTheme.primaryText)
+
+                Text(subtitle)
+                    .font(.system(size: 10))
+                    .foregroundStyle(LauncherTheme.secondaryText)
+            }
+
+            Spacer()
+
+            Toggle("", isOn: isOn)
+                .labelsHidden()
+                .tint(LauncherTheme.accent)
+                .controlSize(.small)
+        }
+    }
+
+    private func resolutionField(
+        title: LocalizedStringKey,
+        value: Binding<Int>
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
             Text(title)
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(LauncherTheme.secondaryText)
 
-            TextField(
-                "",
-                value: value,
-                format: .number
-            )
-            .textFieldStyle(.roundedBorder)
-            .frame(width: 100)
+            TextField("", value: value, format: .number)
+                .textFieldStyle(.plain)
+                .font(.system(size: 12, design: .monospaced))
+                .foregroundStyle(LauncherTheme.primaryText)
+                .padding(.horizontal, 11)
+                .frame(width: 105, height: 36)
+                .background(LauncherTheme.elevatedSurface)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 8)
+                        .strokeBorder(LauncherTheme.separator, lineWidth: 1)
+                }
         }
     }
 
-    private func emptyState(_ text: LocalizedStringKey) -> some View {
-        Text(text)
-            .font(.system(size: 11))
-            .foregroundStyle(.secondary)
-            .padding(.vertical, 5)
+    private func themedTextField(
+        placeholder: String,
+        text: Binding<String>,
+        monospaced: Bool = false
+    ) -> some View {
+        TextField(placeholder, text: text)
+            .textFieldStyle(.plain)
+            .font(
+                .system(
+                    size: 11,
+                    design: monospaced ? .monospaced : .default
+                )
+            )
+            .foregroundStyle(LauncherTheme.primaryText)
+            .padding(.horizontal, 11)
+            .frame(height: 37)
+            .background(LauncherTheme.elevatedSurface)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay {
+                RoundedRectangle(cornerRadius: 8)
+                    .strokeBorder(LauncherTheme.separator, lineWidth: 1)
+            }
     }
 
-    private func dictionaryBinding(for key: String,in keyPath: WritableKeyPath<GameLaunchSettings, [String: String]>) -> Binding<String> {
+    private func dictionaryRow(
+        name: String,
+        value: Binding<String>,
+        onDelete: @escaping () -> Void
+    ) -> some View {
+        HStack(spacing: 10) {
+            Text(name)
+                .font(.system(size: 10, weight: .medium, design: .monospaced))
+                .foregroundStyle(LauncherTheme.accent)
+                .lineLimit(1)
+                .frame(width: 145, alignment: .leading)
+
+            themedTextField(
+                placeholder: "Value",
+                text: value,
+                monospaced: true
+            )
+
+            Button(role: .destructive, action: onDelete) {
+                Image(systemName: "trash")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.red)
+                    .frame(width: 32, height: 32)
+                    .background(.red.opacity(0.08))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+            .buttonStyle(.plain)
+            .help("Remove")
+        }
+        .padding(9)
+        .background(LauncherTheme.elevatedSurface)
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    private func addButton(action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: "plus")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(width: 37, height: 37)
+                .background(LauncherTheme.accent)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func emptyState(
+        title: LocalizedStringKey,
+        description: LocalizedStringKey,
+        icon: String
+    ) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 17))
+                .foregroundStyle(LauncherTheme.secondaryText)
+                .frame(width: 38, height: 38)
+                .background(LauncherTheme.elevatedSurface)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(LauncherTheme.primaryText)
+
+                Text(description)
+                    .font(.system(size: 10))
+                    .foregroundStyle(LauncherTheme.secondaryText)
+            }
+
+            Spacer()
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(LauncherTheme.elevatedSurface)
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    private func informationNotice(
+        _ message: LocalizedStringKey,
+        icon: String
+    ) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .foregroundStyle(LauncherTheme.accent)
+
+            Text(message)
+                .foregroundStyle(LauncherTheme.secondaryText)
+        }
+        .font(.system(size: 10))
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(LauncherTheme.accentBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    private var sectionDivider: some View {
+        Rectangle()
+            .fill(LauncherTheme.separator)
+            .frame(height: 1)
+    }
+
+    // MARK: - Bindings
+
+    private func dictionaryBinding(
+        for key: String,
+        in keyPath: WritableKeyPath<GameLaunchSettings, [String: String]>
+    ) -> Binding<String> {
         Binding(
             get: {
                 settings[keyPath: keyPath][key] ?? ""
@@ -414,6 +690,8 @@ struct GameLaunchSettingsView: View {
             }
         )
     }
+
+    // MARK: - Actions
 
     private func addDLLOverride() {
         let name = newDLLName.trimmingCharacters(in: .whitespaces)

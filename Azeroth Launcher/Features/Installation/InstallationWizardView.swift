@@ -28,32 +28,30 @@ struct InstallationWizardView: View {
 
     var body: some View {
         VStack(spacing: 0) {
- 
             header
+
             ScrollView {
-                VStack(alignment: .leading, spacing: 26) {
+                VStack(alignment: .leading, spacing: 27) {
                     editionSelector
+
                     folderSelector
+
                     if let errorMessage {
-                        messageView(
-                            errorMessage,
-                            isError: true
-                        )
+                        messageView(errorMessage, isError: true)
                     }
 
                     if let successMessage {
-                        messageView(
-                            successMessage,
-                            isError: false
-                        )
+                        messageView(successMessage, isError: false)
                     }
                 }
                 .padding(28)
             }
+            .scrollIndicators(.visible)
+
             footer
         }
-        .frame(width: 600, height: 620)
-        .background(Color(nsColor: .windowBackgroundColor))
+        .frame(width: 660, height: 700)
+        .background(LauncherTheme.background)
         .fileImporter(
             isPresented: $isImporterPresented,
             allowedContentTypes: [.folder],
@@ -62,51 +60,68 @@ struct InstallationWizardView: View {
         )
     }
 
+    // MARK: - Header
+
     private var header: some View {
         HStack(spacing: 15) {
             Image(systemName: "plus.square.fill")
-                .font(.system(size: 30))
-                .foregroundStyle(.orange)
+                .font(.system(size: 25))
+                .foregroundStyle(LauncherTheme.accent)
+                .frame(width: 50, height: 50)
+                .background(LauncherTheme.accentBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
 
             VStack(alignment: .leading, spacing: 5) {
                 Text("Add Game Client")
-                    .font(.system(size: 23, weight: .bold))
+                    .font(.system(size: 21, weight: .bold))
+                    .foregroundStyle(LauncherTheme.primaryText)
+
                 Text("Add an existing World of Warcraft client")
                     .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(LauncherTheme.secondaryText)
             }
+
             Spacer()
+
             Button {
                 dismiss()
             } label: {
                 Image(systemName: "xmark")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 30, height: 30)
-                    .background(.white.opacity(0.06))
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(LauncherTheme.secondaryText)
+                    .frame(width: 32, height: 32)
+                    .background(LauncherTheme.elevatedSurface)
                     .clipShape(Circle())
             }
             .buttonStyle(.plain)
+            .help("Close")
         }
         .padding(.horizontal, 28)
-        .padding(.vertical, 22)
-        .background(.ultraThinMaterial)
+        .padding(.vertical, 20)
+        .background(LauncherTheme.sidebar)
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(LauncherTheme.separator)
+                .frame(height: 1)
+        }
     }
 
+    // MARK: - Edition Selector
+
     private var editionSelector: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 15) {
             sectionHeader(
                 title: "GAME VERSION",
-                subtitle: "Choose your edition",
+                subtitle: "Choose the World of Warcraft era you want to add.",
                 icon: "gamecontroller.fill"
             )
 
             LazyVGrid(
                 columns: [
-                    GridItem(.flexible()),
-                    GridItem(.flexible())
+                    GridItem(.flexible(), spacing: 13),
+                    GridItem(.flexible(), spacing: 13)
                 ],
-                spacing: 12
+                spacing: 13
             ) {
                 ForEach(GameEdition.allCases) { edition in
                     editionCard(edition)
@@ -117,8 +132,9 @@ struct InstallationWizardView: View {
 
     private func editionCard(_ edition: GameEdition) -> some View {
         let isSelected = selectedEdition == edition
+
         return Button {
-            withAnimation(.easeInOut(duration: 0.15)) {
+            withAnimation(.easeInOut(duration: 0.18)) {
                 selectedEdition = edition
                 errorMessage = nil
                 successMessage = nil
@@ -135,120 +151,166 @@ struct InstallationWizardView: View {
                         )
                         .clipped()
                 }
+
                 LinearGradient(
-                    colors: [
-                        .black.opacity(0.05),
-                        .black.opacity(0.85)
+                    stops: [
+                        .init(color: .black.opacity(0.02), location: 0),
+                        .init(color: .black.opacity(0.15), location: 0.35),
+                        .init(color: .black.opacity(0.88), location: 1)
                     ],
                     startPoint: .top,
                     endPoint: .bottom
                 )
+
                 VStack(alignment: .leading, spacing: 5) {
                     Spacer()
+
                     Text(edition.title)
-                        .font(.system(size: 13, weight: .bold))
+                        .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(.white)
                         .lineLimit(2)
 
                     Text("Version \(edition.version)")
-                        .font(.system(size: 11))
+                        .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(.white.opacity(0.75))
                 }
-                .padding(13)
+                .padding(14)
+
                 VStack {
                     HStack {
                         Spacer()
+
                         Image(
                             systemName: isSelected
                                 ? "checkmark.circle.fill"
                                 : "circle"
                         )
-                        .font(.system(size: 19))
+                        .font(.system(size: 20))
                         .foregroundStyle(
-                            isSelected ? .orange : .white.opacity(0.7)
+                            isSelected
+                                ? LauncherTheme.accent
+                                : .white.opacity(0.75)
                         )
+                        .background {
+                            Circle()
+                                .fill(.black.opacity(0.3))
+                                .padding(-3)
+                        }
                     }
 
                     Spacer()
                 }
-                .padding(12)
+                .padding(13)
+
+                if isSelected {
+                    RoundedRectangle(cornerRadius: 13)
+                        .fill(LauncherTheme.accent.opacity(0.08))
+                        .allowsHitTesting(false)
+                }
             }
-            .frame(height: 115)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .frame(height: 135)
+            .clipShape(RoundedRectangle(cornerRadius: 13))
             .overlay {
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(
+                RoundedRectangle(cornerRadius: 13)
+                    .strokeBorder(
                         isSelected
-                            ? Color.orange
-                            : Color.white.opacity(0.08),
+                            ? LauncherTheme.accent
+                            : LauncherTheme.separator,
                         lineWidth: isSelected ? 2 : 1
                     )
             }
+            .contentShape(RoundedRectangle(cornerRadius: 13))
         }
         .buttonStyle(.plain)
+        .scaleEffect(isSelected ? 1.015 : 1)
     }
 
+    // MARK: - Folder Selector
+
     private var folderSelector: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 15) {
             sectionHeader(
                 title: "GAME DIRECTORY",
-                subtitle: "Select the folder containing your game files",
+                subtitle: "Select the folder containing your game files.",
                 icon: "folder.fill"
             )
+
             Button {
                 isImporterPresented = true
             } label: {
                 HStack(spacing: 15) {
                     Image(systemName: "folder.badge.plus")
-                        .font(.system(size: 25))
-                        .foregroundStyle(.orange)
-                        .frame(width: 48, height: 48)
-                        .background(.orange.opacity(0.12))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .font(.system(size: 23))
+                        .foregroundStyle(LauncherTheme.accent)
+                        .frame(width: 50, height: 50)
+                        .background(LauncherTheme.accentBackground)
+                        .clipShape(RoundedRectangle(cornerRadius: 13))
 
-                    VStack(alignment: .leading, spacing: 5) {
+                    VStack(alignment: .leading, spacing: 6) {
                         if let selectedFolder {
                             Text(selectedFolder.lastPathComponent)
                                 .font(.system(size: 13, weight: .semibold))
-                                .foregroundStyle(.primary)
-                        } else {
-                            Text("Choose game folder")
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundStyle(.primary)
-                        }
-                        if let selectedFolder {
+                                .foregroundStyle(LauncherTheme.primaryText)
+                                .lineLimit(1)
+
                             Text(selectedFolder.path)
                                 .font(.system(size: 10))
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(LauncherTheme.secondaryText)
                                 .lineLimit(1)
                                 .truncationMode(.middle)
                         } else {
+                            Text("Choose game folder")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(LauncherTheme.primaryText)
+
                             Text("Select a folder containing Wow.exe")
                                 .font(.system(size: 11))
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(LauncherTheme.secondaryText)
                         }
                     }
-                    Spacer()
+
+                    Spacer(minLength: 5)
+
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(.tertiary)
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(LauncherTheme.secondaryText)
                 }
                 .padding(16)
-                .background(.regularMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .background(LauncherTheme.surface)
+                .clipShape(RoundedRectangle(cornerRadius: 13))
                 .overlay {
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(
-                            Color.white.opacity(0.08),
+                    RoundedRectangle(cornerRadius: 13)
+                        .strokeBorder(
+                            selectedFolder == nil
+                                ? LauncherTheme.separator
+                                : LauncherTheme.accent.opacity(0.5),
                             lineWidth: 1
                         )
                 }
             }
             .buttonStyle(.plain)
+
+            if selectedFolder != nil {
+                HStack(spacing: 7) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+
+                    Text("Game directory selected")
+                        .foregroundStyle(LauncherTheme.secondaryText)
+                }
+                .font(.system(size: 10, weight: .medium))
+                .padding(.leading, 3)
+            }
         }
     }
-    private func messageView( _ message: String, isError: Bool) -> some View {
-        HStack(spacing: 12) {
+
+    // MARK: - Messages
+
+    private func messageView(
+        _ message: String,
+        isError: Bool
+    ) -> some View {
+        HStack(spacing: 11) {
             Image(
                 systemName: isError
                     ? "exclamationmark.circle.fill"
@@ -256,32 +318,58 @@ struct InstallationWizardView: View {
             )
             .font(.system(size: 17))
 
-            if isError {
-                Text(verbatim: message)
-                    .font(.system(size: 12))
-            } else {
-                Text(LocalizedStringKey(message))
-                    .font(.system(size: 12))
-            }
+            Text(verbatim: message)
+                .font(.system(size: 11, weight: .medium))
+                .fixedSize(horizontal: false, vertical: true)
 
             Spacer()
         }
-        .foregroundStyle(isError ? .red : .green)
+        .foregroundStyle(
+            isError ? Color.red : Color.green
+        )
         .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             (isError ? Color.red : Color.green).opacity(0.1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .clipShape(RoundedRectangle(cornerRadius: 11))
+        .overlay {
+            RoundedRectangle(cornerRadius: 11)
+                .strokeBorder(
+                    (isError ? Color.red : Color.green).opacity(0.2),
+                    lineWidth: 1
+                )
+        }
     }
 
+    // MARK: - Footer
+
     private var footer: some View {
-        HStack {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("READY TO ADD")
+                    .font(.system(size: 9, weight: .bold))
+                    .tracking(1.2)
+                    .foregroundStyle(LauncherTheme.secondaryText)
+
+                Text(selectedFolder == nil
+                     ? "Select a game directory to continue."
+                     : selectedEdition.title)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(LauncherTheme.primaryText)
+                    .lineLimit(1)
+            }
+
+            Spacer()
+
             Button("Cancel") {
                 dismiss()
             }
+            .buttonStyle(.bordered)
+            .controlSize(.large)
             .keyboardShortcut(.cancelAction)
             .disabled(isInspecting)
-            Spacer()
+
             Button {
                 registerInstallation()
             } label: {
@@ -299,46 +387,61 @@ struct InstallationWizardView: View {
                             ? "Validating client..."
                             : "Add Game"
                     )
-                    .fontWeight(.semibold)
+                    .font(.system(size: 12, weight: .semibold))
                 }
-                .frame(minWidth: 140)
+                .frame(minWidth: 145)
                 .padding(.vertical, 4)
             }
             .buttonStyle(.borderedProminent)
-            .tint(.orange)
+            .tint(LauncherTheme.accent)
+            .controlSize(.large)
             .disabled(!canInstall)
         }
         .padding(.horizontal, 28)
-        .padding(.vertical, 18)
-        .background(.ultraThinMaterial)
+        .padding(.vertical, 17)
+        .background(LauncherTheme.sidebar)
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(LauncherTheme.separator)
+                .frame(height: 1)
+        }
     }
 
-    private func sectionHeader( title: LocalizedStringKey, subtitle: LocalizedStringKey, icon: String) -> some View {
+    // MARK: - Components
+
+    private func sectionHeader(
+        title: LocalizedStringKey,
+        subtitle: LocalizedStringKey,
+        icon: String
+    ) -> some View {
         HStack(spacing: 11) {
             Image(systemName: icon)
                 .font(.system(size: 16))
-                .foregroundStyle(.orange)
-                .frame(width: 36, height: 36)
-                .background(.orange.opacity(0.12))
-                .clipShape(RoundedRectangle(cornerRadius: 9))
+                .foregroundStyle(LauncherTheme.accent)
+                .frame(width: 38, height: 38)
+                .background(LauncherTheme.accentBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
 
-            VStack(alignment: .leading, spacing: 3) {
-
+            VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.system(size: 11, weight: .bold))
-                    .tracking(1.5)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 10, weight: .bold))
+                    .tracking(1.3)
+                    .foregroundStyle(LauncherTheme.secondaryText)
 
                 Text(subtitle)
-                    .font(.system(size: 12))
-                    .foregroundStyle(.primary)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(LauncherTheme.primaryText)
             }
 
             Spacer()
         }
     }
 
-    private func handleFolderSelection( _ result: Result<[URL], Error>) {
+    // MARK: - Folder Selection
+
+    private func handleFolderSelection(
+        _ result: Result<[URL], Error>
+    ) {
         switch result {
         case .success(let urls):
             selectedFolder = urls.first
@@ -349,6 +452,8 @@ struct InstallationWizardView: View {
             errorMessage = error.localizedDescription
         }
     }
+
+    // MARK: - Installation
 
     private func registerInstallation() {
         guard let folder = selectedFolder else {
@@ -361,27 +466,34 @@ struct InstallationWizardView: View {
 
         Task { @MainActor in
             let hasAccess = folder.startAccessingSecurityScopedResource()
+
             guard hasAccess else {
                 isInspecting = false
                 errorMessage = "Unable to access the selected game directory."
                 return
             }
+
             defer {
                 if hasAccess {
                     folder.stopAccessingSecurityScopedResource()
                 }
+
                 isInspecting = false
             }
+
             do {
                 let inspection = try installationService.inspect(
                     at: folder,
                     edition: selectedEdition
                 )
+
                 let validation = try clientValidator.validate(
                     at: inspection.installationURL,
                     expectedEdition: selectedEdition
                 )
+
                 print(validation.summary)
+
                 let prefixURL = FileManager.default
                     .urls(
                         for: .applicationSupportDirectory,
@@ -407,6 +519,7 @@ struct InstallationWizardView: View {
                 )
 
                 gameManager.add(installation)
+
                 successMessage = "Game client successfully added."
                 dismiss()
 

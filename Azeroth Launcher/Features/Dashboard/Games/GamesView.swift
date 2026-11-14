@@ -88,10 +88,38 @@ struct GamesView: View {
     }
     
     private var installedGames: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            Text("Installed games")
-                .font(.system(size: 15))
-                .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 22) {
+            HStack(alignment: .center) {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("Your game library")
+                        .font(.system(size: 19, weight: .bold))
+                        .foregroundStyle(LauncherTheme.primaryText)
+
+                    Text("Your installed World of Warcraft clients")
+                        .font(.system(size: 12))
+                        .foregroundStyle(LauncherTheme.secondaryText)
+                }
+
+                Spacer()
+
+                HStack(spacing: 7) {
+                    Image(systemName: "square.grid.2x2.fill")
+                        .font(.system(size: 11))
+
+                    Text("\(installedInstallations.count)")
+                        .font(.system(size: 12, weight: .bold))
+                        .monospacedDigit()
+
+                    Text("INSTALLED")
+                        .font(.system(size: 9, weight: .bold))
+                        .tracking(1)
+                }
+                .foregroundStyle(LauncherTheme.accent)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 9)
+                .background(LauncherTheme.accentBackground)
+                .clipShape(Capsule())
+            }
 
             LazyVGrid(
                 columns: [

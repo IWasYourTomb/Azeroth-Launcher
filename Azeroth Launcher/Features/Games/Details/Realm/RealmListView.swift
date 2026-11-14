@@ -14,21 +14,20 @@ private struct RealmSheet: Identifiable {
 
 struct RealmListView: View {
     let installation: GameInstallation
+
     @Environment(\.locale) private var appLocale
     @Environment(\.dismiss) private var dismiss
 
     @State private var servers: [RealmServer] = []
     @State private var currentAddress: String?
-    
     @State private var activeSheet: RealmSheet?
-    
+
     @State private var errorMessage: String?
     @State private var isErrorPresented = false
     @State private var isSuccessPresented = false
 
     private let fileService = RealmListFileService()
     private let store = RealmServerStore()
-    
 
     private var currentServer: RealmServer? {
         guard let currentAddress else {
@@ -41,15 +40,18 @@ struct RealmListView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
+        VStack(alignment: .leading, spacing: 25) {
             header
+
             currentRealmSection
+
             savedRealmsSection
+
             Spacer(minLength: 0)
         }
-        .padding(28)
-        .frame(minWidth: 560, minHeight: 520)
-        .background(Color(nsColor: .windowBackgroundColor))
+        .padding(30)
+        .frame(minWidth: 620, minHeight: 570)
+        .background(LauncherTheme.background)
         .onAppear {
             loadData()
         }
@@ -93,15 +95,22 @@ struct RealmListView: View {
     }
 
     private var header: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("REALM MANAGER")
-                    .font(.system(size: 22, weight: .black))
-                    .tracking(1.2)
+        HStack(spacing: 15) {
+            Image(systemName: "globe.americas.fill")
+                .font(.system(size: 23))
+                .foregroundStyle(LauncherTheme.accent)
+                .frame(width: 54, height: 54)
+                .background(LauncherTheme.accentBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 15))
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text("Realm Manager")
+                    .font(.system(size: 23, weight: .bold))
+                    .foregroundStyle(LauncherTheme.primaryText)
 
                 Text(installation.edition.title)
-                    .font(.system(size: 13))
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(LauncherTheme.secondaryText)
             }
 
             Spacer()
@@ -110,66 +119,78 @@ struct RealmListView: View {
                 dismiss()
             } label: {
                 Image(systemName: "xmark")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(LauncherTheme.secondaryText)
                     .frame(width: 32, height: 32)
-                    .background(.white.opacity(0.06))
+                    .background(LauncherTheme.elevatedSurface)
                     .clipShape(Circle())
             }
             .buttonStyle(.plain)
+            .help("Close")
         }
     }
 
     private var currentRealmSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            sectionTitle(
+        VStack(alignment: .leading, spacing: 13) {
+            sectionHeader(
                 "CURRENT REALM",
-                subtitle: "The server configured in your game client."
+                subtitle: "The server currently configured in your game client."
             )
 
-            HStack(spacing: 14) {
+            HStack(spacing: 15) {
                 Image(systemName: "globe")
                     .font(.system(size: 22))
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(LauncherTheme.accent)
                     .frame(width: 48, height: 48)
-                    .background(.orange.opacity(0.12))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .background(LauncherTheme.accentBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: 13))
 
-                VStack(alignment: .leading, spacing: 5) {
-                    Group {
-                        if let currentServer {
-                            Text(currentServer.name)
-                        } else {
-                            Text("Custom Realm")
-                        }
-                    }
-                    .font(.system(size: 14, weight: .semibold))
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(currentServer?.name ?? "Custom Realm")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(LauncherTheme.primaryText)
 
                     Text(currentAddress ?? "Not configured")
-                        .font(.system(size: 12, design: .monospaced))
-                        .foregroundStyle(.secondary)
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundStyle(LauncherTheme.secondaryText)
+                        .textSelection(.enabled)
                 }
 
                 Spacer()
 
-                Circle()
-                    .fill(currentAddress == nil ? .gray : .green)
-                    .frame(width: 8, height: 8)
+                HStack(spacing: 7) {
+                    Circle()
+                        .fill(currentAddress == nil ? .gray : .green)
+                        .frame(width: 7, height: 7)
+
+                    Text(currentAddress == nil ? "NOT CONFIGURED" : "ACTIVE")
+                        .font(.system(size: 9, weight: .bold))
+                        .tracking(1)
+                        .foregroundStyle(
+                            currentAddress == nil
+                                ? LauncherTheme.secondaryText
+                                : .green
+                        )
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 7)
+                .background(LauncherTheme.elevatedSurface)
+                .clipShape(Capsule())
             }
-            .padding(16)
-            .background(.white.opacity(0.035))
+            .padding(17)
+            .background(LauncherTheme.surface)
             .clipShape(RoundedRectangle(cornerRadius: 14))
             .overlay {
                 RoundedRectangle(cornerRadius: 14)
-                    .strokeBorder(.white.opacity(0.07), lineWidth: 1)
+                    .strokeBorder(LauncherTheme.separator, lineWidth: 1)
             }
         }
     }
 
     private var savedRealmsSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                sectionTitle(
+            HStack(alignment: .center) {
+                sectionHeader(
                     "SAVED REALMS",
                     subtitle: "Manage your saved game servers."
                 )
@@ -180,10 +201,11 @@ struct RealmListView: View {
                     activeSheet = RealmSheet(server: nil)
                 } label: {
                     Label("Add Realm", systemImage: "plus")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.system(size: 11, weight: .semibold))
+                        .padding(.horizontal, 4)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(.orange)
+                .tint(LauncherTheme.accent)
             }
 
             if servers.isEmpty {
@@ -213,34 +235,47 @@ struct RealmListView: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 12) {
             Image(systemName: "server.rack")
-                .font(.system(size: 28))
-                .foregroundStyle(.secondary)
+                .font(.system(size: 30))
+                .foregroundStyle(LauncherTheme.accentSecondary)
+                .frame(width: 58, height: 58)
+                .background(LauncherTheme.elevatedSurface)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
 
             Text("No saved realms")
                 .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(LauncherTheme.primaryText)
 
             Text("Add your favorite game servers to switch between them easily.")
-                .font(.system(size: 12))
-                .foregroundStyle(.secondary)
+                .font(.system(size: 11))
+                .foregroundStyle(LauncherTheme.secondaryText)
                 .multilineTextAlignment(.center)
+                .frame(maxWidth: 300)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 35)
-        .background(.white.opacity(0.025))
+        .padding(.vertical, 30)
+        .background(LauncherTheme.surface)
         .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(LauncherTheme.separator, lineWidth: 1)
+        }
     }
 
-    private func sectionTitle(_ title: LocalizedStringKey, subtitle: LocalizedStringKey) -> some View {
+    private func sectionHeader(
+        _ title: LocalizedStringKey,
+        subtitle: LocalizedStringKey
+    ) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             Text(title)
-                .font(.system(size: 11, weight: .bold))
-                .tracking(1.2)
+                .font(.system(size: 10, weight: .bold))
+                .tracking(1.4)
+                .foregroundStyle(LauncherTheme.primaryText)
 
             Text(subtitle)
-                .font(.system(size: 12))
-                .foregroundStyle(.secondary)
+                .font(.system(size: 11))
+                .foregroundStyle(LauncherTheme.secondaryText)
         }
     }
 
@@ -248,6 +283,7 @@ struct RealmListView: View {
         servers = store.load(
             for: installation.edition
         )
+
         do {
             currentAddress = try fileService.readCurrentRealm(
                 installationPath: installation.installationPath

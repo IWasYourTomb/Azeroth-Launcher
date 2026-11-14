@@ -10,12 +10,10 @@ import UniformTypeIdentifiers
 import AppKit
 
 struct AddonsView: View {
-
     let installation: GameInstallation
 
     private let addonInstaller = AddonInstaller()
     private let addonManager = AddonManager()
-
     private let fileManager = FileManager.default
 
     @State private var isImporterPresented = false
@@ -49,8 +47,9 @@ struct AddonsView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 17) {
             header
+
             if isLoading {
                 loadingView
             } else if let errorMessage {
@@ -96,9 +95,7 @@ struct AddonsView: View {
             allowedContentTypes: [.zip],
             allowsMultipleSelection: false
         ) { result in
-
             switch result {
-
             case .success(let urls):
                 guard let archiveURL = urls.first else {
                     return
@@ -112,80 +109,144 @@ struct AddonsView: View {
         }
     }
 
+    // MARK: - Header
+
     private var header: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 5) {
-                HStack(spacing: 8) {
-                    Text("Installed Addons")
-                        .font(.system(size: 14, weight: .bold))
-
-                    Text("\(addons.count)")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(.orange)
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 3)
-                        .background(.orange.opacity(0.12))
-                        .clipShape(Capsule())
-                }
-
-                Text("Manage installed game modifications")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-
+        VStack(alignment: .leading, spacing: 15) {
+            HStack(alignment: .center) {
                 HStack(spacing: 10) {
+                    Image(systemName: "puzzlepiece.extension.fill")
+                        .font(.system(size: 17))
+                        .foregroundStyle(LauncherTheme.accent)
+                        .frame(width: 38, height: 38)
+                        .background(LauncherTheme.accentBackground)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
 
-                    Label(
-                        "\(enabledCount) " + String(localized: "Enabled"),
-                        systemImage: "checkmark.circle.fill"
-                    )
-                    .foregroundStyle(.green)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Installed Addons")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(LauncherTheme.primaryText)
 
-                    Label(
-                        "\(disabledCount) " + String(localized: "Disabled"),
-                        systemImage: "pause.circle.fill"
-                    )
-                    .foregroundStyle(.secondary)
+                        Text("Manage installed game modifications")
+                            .font(.system(size: 10))
+                            .foregroundStyle(LauncherTheme.secondaryText)
+                    }
                 }
-                .font(.system(size: 9, weight: .medium))
-                .padding(.top, 3)
+
+                Spacer()
+
+                Button {
+                    isImporterPresented = true
+                } label: {
+                    Label("Install Addon", systemImage: "plus")
+                        .font(.system(size: 11, weight: .semibold))
+                        .padding(.horizontal, 5)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(LauncherTheme.accent)
+                .disabled(isLoading)
+
+                Button {
+                    scanAddons()
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(LauncherTheme.primaryText)
+                        .frame(width: 32, height: 32)
+                        .background(LauncherTheme.elevatedSurface)
+                        .clipShape(RoundedRectangle(cornerRadius: 9))
+                }
+                .buttonStyle(.plain)
+                .disabled(isLoading)
+                .help("Refresh addons")
             }
 
-            Spacer()
+            HStack(spacing: 10) {
+                statisticCard(
+                    title: "Total",
+                    value: addons.count,
+                    icon: "square.grid.2x2.fill",
+                    color: LauncherTheme.accent
+                )
 
-            Button {
-                isImporterPresented = true
-            } label: {
-                Label("Install Addon", systemImage: "plus")
-                    .font(.system(size: 11, weight: .semibold))
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(.orange)
-            .disabled(isLoading)
+                statisticCard(
+                    title: "Enabled",
+                    value: enabledCount,
+                    icon: "checkmark.circle.fill",
+                    color: .green
+                )
 
-            Button {
-                scanAddons()
-            } label: {
-                Image(systemName: "arrow.clockwise")
-                    .font(.system(size: 12, weight: .semibold))
+                statisticCard(
+                    title: "Disabled",
+                    value: disabledCount,
+                    icon: "pause.circle.fill",
+                    color: LauncherTheme.secondaryText
+                )
             }
-            .buttonStyle(.bordered)
-            .disabled(isLoading)
-            .help("Refresh addons")
         }
     }
 
+    private func statisticCard(
+        title: LocalizedStringKey,
+        value: Int,
+        icon: String,
+        color: Color
+    ) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 14))
+                .foregroundStyle(color)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text("\(value)")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(LauncherTheme.primaryText)
+                    .monospacedDigit()
+
+                Text(title)
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(LauncherTheme.secondaryText)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(LauncherTheme.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 11))
+        .overlay {
+            RoundedRectangle(cornerRadius: 11)
+                .strokeBorder(LauncherTheme.separator, lineWidth: 1)
+        }
+    }
+
+    // MARK: - Addons List
+
     private var addonsList: some View {
-        VStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 12) {
             searchField
+
+            HStack {
+                Text("ADDON LIST")
+                    .font(.system(size: 9, weight: .bold))
+                    .tracking(1.5)
+                    .foregroundStyle(LauncherTheme.secondaryText)
+
+                Spacer()
+
+                Text("\(filteredAddons.count) / \(addons.count)")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(LauncherTheme.secondaryText)
+                    .monospacedDigit()
+            }
+            .padding(.top, 3)
+
             if filteredAddons.isEmpty {
                 ContentUnavailableView.search(text: searchText)
                     .frame(height: 140)
             } else {
-
-                LazyVStack(spacing: 9) {
-
+                LazyVStack(spacing: 8) {
                     ForEach(filteredAddons) { addon in
-
                         AddonRowView(
                             addon: addon,
                             edition: installation.edition,
@@ -198,62 +259,80 @@ struct AddonsView: View {
             }
         }
     }
-    
-    private var searchField: some View {
-        HStack(spacing: 9) {
 
+    private var searchField: some View {
+        HStack(spacing: 10) {
             Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
+                .font(.system(size: 12))
+                .foregroundStyle(LauncherTheme.secondaryText)
 
             TextField("Search addons...", text: $searchText)
                 .textFieldStyle(.plain)
+                .font(.system(size: 12))
+                .foregroundStyle(LauncherTheme.primaryText)
 
             if !searchText.isEmpty {
-
                 Button {
                     searchText = ""
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(LauncherTheme.secondaryText)
                 }
                 .buttonStyle(.plain)
             }
         }
-        .font(.system(size: 12))
-        .padding(11)
-        .background(.white.opacity(0.035))
-        .clipShape(RoundedRectangle(cornerRadius: 9))
+        .padding(.horizontal, 13)
+        .padding(.vertical, 11)
+        .background(LauncherTheme.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .overlay {
+            RoundedRectangle(cornerRadius: 10)
+                .strokeBorder(LauncherTheme.separator, lineWidth: 1)
+        }
     }
+
+    // MARK: - Loading
 
     private var loadingView: some View {
-        HStack(spacing: 12) {
-
+        VStack(spacing: 12) {
             ProgressView()
-                .controlSize(.small)
+                .controlSize(.regular)
+                .tint(LauncherTheme.accent)
 
             Text("Scanning addons...")
-                .font(.system(size: 12))
-                .foregroundStyle(.secondary)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(LauncherTheme.secondaryText)
         }
         .frame(maxWidth: .infinity)
-        .padding(25)
-        .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .padding(.vertical, 35)
+        .background(LauncherTheme.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 13))
+        .overlay {
+            RoundedRectangle(cornerRadius: 13)
+                .strokeBorder(LauncherTheme.separator, lineWidth: 1)
+        }
     }
 
+    // MARK: - Empty State
+
     private var emptyState: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 12) {
             Image(systemName: "puzzlepiece.extension")
-                .font(.system(size: 28))
-                .foregroundStyle(.secondary)
+                .font(.system(size: 30))
+                .foregroundStyle(LauncherTheme.accent)
+                .frame(width: 68, height: 68)
+                .background(LauncherTheme.accentBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 18))
 
             Text("No addons found")
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(LauncherTheme.primaryText)
 
             Text("Addons installed in Interface/AddOns will appear here.")
                 .font(.system(size: 11))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(LauncherTheme.secondaryText)
                 .multilineTextAlignment(.center)
+                .frame(maxWidth: 300)
 
             Button {
                 scanAddons()
@@ -262,37 +341,51 @@ struct AddonsView: View {
                     .font(.system(size: 11, weight: .semibold))
             }
             .buttonStyle(.bordered)
-            .padding(.top, 5)
+            .tint(LauncherTheme.accent)
+            .padding(.top, 4)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 28)
-        .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .padding(.vertical, 30)
+        .background(LauncherTheme.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 13))
+        .overlay {
+            RoundedRectangle(cornerRadius: 13)
+                .strokeBorder(LauncherTheme.separator, lineWidth: 1)
+        }
     }
 
+    // MARK: - Error
+
     private func errorView(_ message: String) -> some View {
-        VStack(spacing: 10) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 25))
-                .foregroundStyle(.orange)
+        VStack(spacing: 12) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 26))
+                .foregroundStyle(LauncherTheme.accent)
 
             Text("Unable to scan addons")
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(LauncherTheme.primaryText)
 
             Text(message)
                 .font(.system(size: 11))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(LauncherTheme.secondaryText)
                 .multilineTextAlignment(.center)
+                .textSelection(.enabled)
 
             Button("Try Again") {
                 scanAddons()
             }
             .buttonStyle(.bordered)
+            .tint(LauncherTheme.accent)
         }
         .frame(maxWidth: .infinity)
-        .padding(20)
-        .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .padding(24)
+        .background(LauncherTheme.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 13))
+        .overlay {
+            RoundedRectangle(cornerRadius: 13)
+                .strokeBorder(LauncherTheme.separator, lineWidth: 1)
+        }
     }
 
     private func scanAddons() {
@@ -316,22 +409,26 @@ struct AddonsView: View {
 
     private func installAddon(from archiveURL: URL) {
         let hasAccess = archiveURL.startAccessingSecurityScopedResource()
+
         defer {
             if hasAccess {
                 archiveURL.stopAccessingSecurityScopedResource()
             }
         }
+
         isLoading = true
         errorMessage = nil
-        
+
         do {
             let installedNames = try addonInstaller.install(
                 from: archiveURL,
                 into: installation
             )
+
             addons = try addonManager.scan(
                 installation: installation
             )
+
             print(
                 "[AddonInstaller] Installed: \(installedNames.joined(separator: ", "))"
             )
@@ -343,15 +440,19 @@ struct AddonsView: View {
         isLoading = false
     }
 
+    // MARK: - Toggle
+
     private func toggleAddon(_ addon: GameAddon) {
         guard !isLoading else {
             return
         }
+
         do {
             try addonManager.setEnabled(
                 addon,
                 enabled: !addon.isEnabled
             )
+
             addons = try addonManager.scan(
                 installation: installation
             )
@@ -359,6 +460,8 @@ struct AddonsView: View {
             showError(error)
         }
     }
+
+    // MARK: - Delete
 
     private func requestDelete(_ addon: GameAddon) {
         addonToDelete = addon
@@ -369,24 +472,31 @@ struct AddonsView: View {
         guard !isLoading else {
             return
         }
+
         do {
             try fileManager.removeItem(
                 at: addon.directoryURL
             )
+
             addons = try addonManager.scan(
                 installation: installation
             )
+
             addonToDelete = nil
         } catch {
             showError(error)
         }
     }
 
+    // MARK: - Finder
+
     private func revealAddon(_ addon: GameAddon) {
         NSWorkspace.shared.activateFileViewerSelecting([
             addon.directoryURL
         ])
     }
+
+    // MARK: - Errors
 
     private func showError(_ error: Error) {
         errorMessage = error.localizedDescription
