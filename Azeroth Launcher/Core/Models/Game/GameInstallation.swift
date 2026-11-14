@@ -15,6 +15,7 @@ struct GameInstallation: Identifiable, Codable {
     var bookmarkData: Data?
     var serverName: String?
     var isInstalled: Bool
+    var runtimeID: UUID?
 
     init(
         id: UUID = UUID(),
@@ -23,7 +24,8 @@ struct GameInstallation: Identifiable, Codable {
         prefixPath: URL,
         bookmarkData: Data? = nil,
         serverName: String? = nil,
-        isInstalled: Bool = true
+        isInstalled: Bool = true,
+        runtimeID: UUID? = nil
     ) {
         self.id = id
         self.edition = edition
@@ -32,5 +34,6 @@ struct GameInstallation: Identifiable, Codable {
         self.bookmarkData = bookmarkData
         self.serverName = serverName
         self.isInstalled = isInstalled
+        self.runtimeID = runtimeID
     }
 }

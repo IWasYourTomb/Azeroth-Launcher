@@ -147,12 +147,7 @@ final class AddonManager {
         )
     }
 
-    // MARK: - Enable / Disable
-
-    func setEnabled(
-        _ addon: GameAddon,
-        enabled: Bool
-    ) throws {
+    func setEnabled(_ addon: GameAddon, enabled: Bool) throws {
 
         guard addon.isEnabled != enabled else {
             return
@@ -185,8 +180,6 @@ final class AddonManager {
         )
     }
 
-    // MARK: - Errors
-
     enum AddonManagerError: LocalizedError {
 
         case destinationAlreadyExists(String)
@@ -201,8 +194,6 @@ final class AddonManager {
         }
     }
 }
-
-// MARK: - String Helpers
 
 private extension String {
 

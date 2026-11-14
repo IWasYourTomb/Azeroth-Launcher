@@ -9,8 +9,6 @@ import Foundation
 
 struct WineHomeManager {
 
-    // MARK: - Properties
-
     private let fileManager: FileManager
     private let rootDirectory: URL
 
@@ -28,8 +26,6 @@ struct WineHomeManager {
         )
     }
 
-    // MARK: - Initialization
-
     init(
         fileManager: FileManager = .default,
         rootDirectory: URL? = nil
@@ -46,8 +42,6 @@ struct WineHomeManager {
                 isDirectory: true
             )
     }
-
-    // MARK: - Public Methods
 
     func prepare() throws {
         try fileManager.createDirectory(
@@ -86,7 +80,6 @@ struct WineHomeManager {
             to: wineDirectory
         )
 
-        // Проверяем существующую символическую ссылку.
         if let existingTarget = try? fileManager.destinationOfSymbolicLink(
             atPath: profileDirectory.path
         ) {
@@ -98,7 +91,6 @@ struct WineHomeManager {
             try fileManager.removeItem(at: profileDirectory)
         }
 
-        // Если это обычная директория, не удаляем её без разрешения.
         else if fileManager.fileExists(
             atPath: profileDirectory.path
         ) {
@@ -115,8 +107,6 @@ struct WineHomeManager {
             withDestinationPath: relativeTarget
         )
     }
-
-    // MARK: - Private Methods
 
     private func currentUsername() -> String {
         let environmentUsername = ProcessInfo.processInfo.environment["USER"]

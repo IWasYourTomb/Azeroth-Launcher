@@ -13,7 +13,10 @@ struct GameDetailsView: View {
 
     @Environment(\.locale) private var appLocale
     @Environment(\.dismiss) private var dismiss
+    @Environment(GameManager.self) private var gameManager
+    @Environment(WineRuntimeManager.self) private var runtimeManager
 
+    @State private var selectedRuntimeID: UUID?
     @State private var copiedValue: String?
     @State private var isRealmManagerPresented = false
     @State private var currentRealmAddress: String?
@@ -42,7 +45,7 @@ struct GameDetailsView: View {
                     heroSection
 
                     installationSection
-
+                    runtimeSection
                     launchSettingsSection
 
                     realmSection
@@ -69,7 +72,87 @@ struct GameDetailsView: View {
                 .environment(\.locale, appLocale)
         }
         .onAppear {
+            selectedRuntimeID = installation.runtimeID
             loadCurrentRealm()
+        }
+        .onChange(of: selectedRuntimeID) { _, newValue in
+            gameManager.setRuntime(
+                newValue,
+                for: installation.id
+            )
+        }
+    }
+    
+    private var runtimeSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            sectionHeader(
+                "Wine Runtime",
+                subtitle: "Choose the Wine version for this game",
+                icon: "wineglass"
+            )
+
+            VStack(alignment: .leading, spacing: 12) {
+                Picker(
+                    "Runtime",
+                    selection: $selectedRuntimeID
+                ) {
+                    Text("System Default")
+                        .tag(Optional<UUID>.none)
+
+                    ForEach(runtimeManager.runtimes) { runtime in
+                        Text(
+                            runtime.isAvailable
+                                ? runtime.displayName
+                                : "\(runtime.displayName) — Unavailable"
+                        )
+                        .tag(Optional(runtime.id))
+                        .disabled(!runtime.isAvailable)
+                    }
+                }
+                .pickerStyle(.menu)
+
+                if let selectedRuntimeID {
+                    if let runtime = runtimeManager.runtimes.first(where: {
+                        $0.id == selectedRuntimeID
+                    }) {
+                        Label(
+                            runtime.isAvailable
+                                ? "Custom Runtime selected"
+                                : "Selected Runtime is unavailable",
+                            systemImage: runtime.isAvailable
+                                ? "checkmark.circle.fill"
+                                : "exclamationmark.triangle.fill"
+                        )
+                        .foregroundStyle(
+                            runtime.isAvailable
+                                ? Color.green
+                                : Color.orange
+                        )
+                        .font(.system(size: 11))
+                    } else {
+                        Label(
+                            "Assigned Runtime was not found",
+                            systemImage: "exclamationmark.triangle.fill"
+                        )
+                        .foregroundStyle(.orange)
+                        .font(.system(size: 11))
+                    }
+                } else {
+                    Label(
+                        "Using the launcher's default Runtime",
+                        systemImage: "info.circle"
+                    )
+                    .foregroundStyle(LauncherTheme.secondaryText)
+                    .font(.system(size: 11))
+                }
+            }
+            .padding(16)
+            .background(LauncherTheme.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 13))
+            .overlay {
+                RoundedRectangle(cornerRadius: 13)
+                    .strokeBorder(LauncherTheme.separator, lineWidth: 1)
+            }
         }
     }
 
@@ -129,8 +212,6 @@ struct GameDetailsView: View {
                 .frame(height: 1)
         }
     }
-
-    // MARK: - Hero
 
     private var heroSection: some View {
         ZStack(alignment: .bottomLeading) {
@@ -232,8 +313,6 @@ struct GameDetailsView: View {
         }
     }
 
-    // MARK: - Launch Configuration
-
     private var launchSettingsSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             sectionHeader(
@@ -282,8 +361,6 @@ struct GameDetailsView: View {
             .buttonStyle(.plain)
         }
     }
-
-    // MARK: - Realm
 
     private var realmSection: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -355,13 +432,9 @@ struct GameDetailsView: View {
         }
     }
 
-    // MARK: - Addons
-
     private var addonsSection: some View {
         AddonsView(installation: installation)
     }
-
-    // MARK: - Components
 
     private func sectionHeader(
         _ title: LocalizedStringKey,

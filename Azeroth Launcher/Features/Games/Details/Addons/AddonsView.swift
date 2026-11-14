@@ -109,8 +109,6 @@ struct AddonsView: View {
         }
     }
 
-    // MARK: - Header
-
     private var header: some View {
         VStack(alignment: .leading, spacing: 15) {
             HStack(alignment: .center) {
@@ -220,8 +218,6 @@ struct AddonsView: View {
         }
     }
 
-    // MARK: - Addons List
-
     private var addonsList: some View {
         VStack(alignment: .leading, spacing: 12) {
             searchField
@@ -291,8 +287,6 @@ struct AddonsView: View {
         }
     }
 
-    // MARK: - Loading
-
     private var loadingView: some View {
         VStack(spacing: 12) {
             ProgressView()
@@ -312,9 +306,7 @@ struct AddonsView: View {
                 .strokeBorder(LauncherTheme.separator, lineWidth: 1)
         }
     }
-
-    // MARK: - Empty State
-
+    
     private var emptyState: some View {
         VStack(spacing: 12) {
             Image(systemName: "puzzlepiece.extension")
@@ -353,8 +345,6 @@ struct AddonsView: View {
                 .strokeBorder(LauncherTheme.separator, lineWidth: 1)
         }
     }
-
-    // MARK: - Error
 
     private func errorView(_ message: String) -> some View {
         VStack(spacing: 12) {
@@ -440,7 +430,6 @@ struct AddonsView: View {
         isLoading = false
     }
 
-    // MARK: - Toggle
 
     private func toggleAddon(_ addon: GameAddon) {
         guard !isLoading else {
@@ -460,8 +449,6 @@ struct AddonsView: View {
             showError(error)
         }
     }
-
-    // MARK: - Delete
 
     private func requestDelete(_ addon: GameAddon) {
         addonToDelete = addon
@@ -488,15 +475,11 @@ struct AddonsView: View {
         }
     }
 
-    // MARK: - Finder
-
     private func revealAddon(_ addon: GameAddon) {
         NSWorkspace.shared.activateFileViewerSelecting([
             addon.directoryURL
         ])
     }
-
-    // MARK: - Errors
 
     private func showError(_ error: Error) {
         errorMessage = error.localizedDescription

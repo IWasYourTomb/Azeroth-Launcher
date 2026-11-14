@@ -33,10 +33,10 @@ struct GameLaunchSettingsView: View {
                 VStack(alignment: .leading, spacing: 25) {
                     rendererSection
                     generalSection
-                    wineSection
                     dllOverridesSection
                     environmentSection
                     resetSection
+                    wineSection
                 }
                 .padding(28)
             }
@@ -56,8 +56,6 @@ struct GameLaunchSettingsView: View {
             )
         }
     }
-
-    // MARK: - Header
 
     private var header: some View {
         HStack(spacing: 15) {
@@ -103,8 +101,6 @@ struct GameLaunchSettingsView: View {
                 .frame(height: 1)
         }
     }
-
-    // MARK: - Renderer
 
     private var rendererSection: some View {
         settingsSection(
@@ -152,8 +148,6 @@ struct GameLaunchSettingsView: View {
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }
     }
-
-    // MARK: - General
 
     private var generalSection: some View {
         settingsSection(
@@ -251,9 +245,7 @@ struct GameLaunchSettingsView: View {
             }
         }
     }
-
-    // MARK: - Wine
-
+    
     private var wineSection: some View {
         settingsSection(
             title: "Wine Configuration",
@@ -282,8 +274,6 @@ struct GameLaunchSettingsView: View {
             }
         }
     }
-
-    // MARK: - DLL Overrides
 
     private var dllOverridesSection: some View {
         settingsSection(
@@ -349,8 +339,6 @@ struct GameLaunchSettingsView: View {
             }
         }
     }
-
-    // MARK: - Environment Variables
 
     private var environmentSection: some View {
         settingsSection(
@@ -418,8 +406,6 @@ struct GameLaunchSettingsView: View {
         }
     }
 
-    // MARK: - Reset
-
     private var resetSection: some View {
         HStack(spacing: 14) {
             Image(systemName: "arrow.counterclockwise")
@@ -455,8 +441,6 @@ struct GameLaunchSettingsView: View {
                 .strokeBorder(LauncherTheme.separator, lineWidth: 1)
         }
     }
-
-    // MARK: - Components
 
     private func settingsSection<Content: View>(
         title: LocalizedStringKey,
@@ -675,8 +659,6 @@ struct GameLaunchSettingsView: View {
             .frame(height: 1)
     }
 
-    // MARK: - Bindings
-
     private func dictionaryBinding(
         for key: String,
         in keyPath: WritableKeyPath<GameLaunchSettings, [String: String]>
@@ -690,8 +672,6 @@ struct GameLaunchSettingsView: View {
             }
         )
     }
-
-    // MARK: - Actions
 
     private func addDLLOverride() {
         let name = newDLLName.trimmingCharacters(in: .whitespaces)

@@ -60,8 +60,6 @@ struct InstallationWizardView: View {
         )
     }
 
-    // MARK: - Header
-
     private var header: some View {
         HStack(spacing: 15) {
             Image(systemName: "plus.square.fill")
@@ -105,8 +103,6 @@ struct InstallationWizardView: View {
                 .frame(height: 1)
         }
     }
-
-    // MARK: - Edition Selector
 
     private var editionSelector: some View {
         VStack(alignment: .leading, spacing: 15) {
@@ -225,8 +221,6 @@ struct InstallationWizardView: View {
         .scaleEffect(isSelected ? 1.015 : 1)
     }
 
-    // MARK: - Folder Selector
-
     private var folderSelector: some View {
         VStack(alignment: .leading, spacing: 15) {
             sectionHeader(
@@ -304,12 +298,7 @@ struct InstallationWizardView: View {
         }
     }
 
-    // MARK: - Messages
-
-    private func messageView(
-        _ message: String,
-        isError: Bool
-    ) -> some View {
+    private func messageView(_ message: String, isError: Bool) -> some View {
         HStack(spacing: 11) {
             Image(
                 systemName: isError
@@ -341,8 +330,6 @@ struct InstallationWizardView: View {
                 )
         }
     }
-
-    // MARK: - Footer
 
     private var footer: some View {
         HStack(spacing: 12) {
@@ -407,8 +394,6 @@ struct InstallationWizardView: View {
         }
     }
 
-    // MARK: - Components
-
     private func sectionHeader(
         title: LocalizedStringKey,
         subtitle: LocalizedStringKey,
@@ -437,11 +422,7 @@ struct InstallationWizardView: View {
         }
     }
 
-    // MARK: - Folder Selection
-
-    private func handleFolderSelection(
-        _ result: Result<[URL], Error>
-    ) {
+    private func handleFolderSelection(_ result: Result<[URL], Error>) {
         switch result {
         case .success(let urls):
             selectedFolder = urls.first
@@ -452,8 +433,6 @@ struct InstallationWizardView: View {
             errorMessage = error.localizedDescription
         }
     }
-
-    // MARK: - Installation
 
     private func registerInstallation() {
         guard let folder = selectedFolder else {

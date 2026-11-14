@@ -61,8 +61,6 @@ struct SidebarView: View {
         }
     }
 
-    // MARK: - Background
-
     private var sidebarBackground: some View {
         ZStack(alignment: .top) {
             LauncherTheme.sidebar
@@ -85,8 +83,6 @@ struct SidebarView: View {
             )
         }
     }
-
-    // MARK: - Logo
 
     private var logo: some View {
         HStack(spacing: 13) {
@@ -143,7 +139,6 @@ struct SidebarView: View {
         .padding(.top, 30)
     }
 
-    // MARK: - Menu
 
     private var menu: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -264,8 +259,6 @@ struct SidebarView: View {
             }
         }
     }
-
-    // MARK: - Footer
 
     private var footer: some View {
         VStack(alignment: .leading, spacing: 14) {

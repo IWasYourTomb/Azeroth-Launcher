@@ -8,14 +8,9 @@
 import Foundation
 
 enum WineProcessRunner {
-
-    // MARK: - Result
-
     struct Result {
         let terminationStatus: Int32
     }
-
-    // MARK: - Errors
 
     enum RunnerError: LocalizedError {
         case executableNotFound(URL)

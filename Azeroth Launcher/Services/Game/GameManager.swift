@@ -171,6 +171,22 @@ final class GameManager {
             }
         }
     }
+    
+    func setRuntime(_ runtimeID: UUID?, for installationID: UUID) {
+        guard let index = installations.firstIndex(where: {
+            $0.id == installationID
+        }) else {
+            return
+        }
+
+        installations[index].runtimeID = runtimeID
+
+        save()
+
+        print(
+            "[GameManager] Runtime updated for \(installations[index].edition.title): \(runtimeID?.uuidString ?? "Default")"
+        )
+    }
 
     private func closeAccess(for id: UUID) {
         guard let session = accessSessions.removeValue(forKey: id) else {
