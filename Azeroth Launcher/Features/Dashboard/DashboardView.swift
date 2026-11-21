@@ -15,9 +15,7 @@ struct DashboardView: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            SidebarView(
-                selectedSection: $selectedSection
-            )
+            SidebarView(selectedSection: $selectedSection)
 
             mainContent
         }

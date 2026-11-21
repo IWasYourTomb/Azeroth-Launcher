@@ -15,7 +15,6 @@ struct GamesView: View {
     
     @State private var selectedInstallation: GameInstallation?
     @State private var launchingInstallationID: UUID?
-    @State private var runningInstallationIDs: Set<UUID> = []
     
     @State private var launchError: String?
     
@@ -25,7 +24,7 @@ struct GamesView: View {
     
     @State private var pendingInstallation: GameInstallation?
     @State private var pendingRuntime: WineRuntime?
-    
+    @State private var runtimeError: String?
     @State private var environmentStatuses: [UUID: GameEnvironmentStatus] = [:]
     
     private var installedInstallations: [GameInstallation] {
@@ -107,8 +106,25 @@ struct GamesView: View {
         } message: {
             Text(launchError ?? "")
         }
+        .alert(
+            "Wine Runtime Error",
+            isPresented: Binding(
+                get: { runtimeError != nil },
+                set: {
+                    if !$0 {
+                        runtimeError = nil
+                    }
+                }
+            )
+        ) {
+            Button("OK", role: .cancel) {
+                runtimeError = nil
+            }
+        } message: {
+            Text(runtimeError ?? "")
+        }
         .task {
-            await monitorGameProcesses()
+            await refreshEnvironmentStatuses()
         }
     }
     
@@ -161,27 +177,7 @@ struct GamesView: View {
                     spacing: 18
                 ) {
                     ForEach(installedInstallations) { installation in
-                        GameCardView(
-                            edition: installation.edition,
-                            installation: installation,
-                            isLaunching: launchingInstallationID == installation.id,
-                            isRunning: runningInstallationIDs.contains(installation.id),
-                            totalPlaytime: appState.gameLaunchManager.totalPlaytime(
-                                for: installation.id
-                            ),
-                            currentSessionDuration: appState.gameLaunchManager.currentSessionDuration(
-                                for: installation.id
-                            ),
-                            environmentStatus: environmentStatuses[installation.id],
-                            onPlay: {
-                                launchGame(installation)
-                            },
-                            onStop: {
-                                stopGame(installation)
-                            }
-                        ) {
-                            selectedInstallation = installation
-                        }
+                        gameCard(for: installation)
                     }
                 }
                 .frame(maxWidth: .infinity)
@@ -191,6 +187,55 @@ struct GamesView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    private func gameCard(for installation: GameInstallation) -> some View {
+        let isLaunching = launchingInstallationID == installation.id
+
+        let isRunning = appState.gameLaunchManager.isRunning(
+            installationID: installation.id
+        )
+
+        let totalPlaytime = appState.gameLaunchManager.totalPlaytime(
+            for: installation.id
+        )
+
+        let currentSessionDuration = appState.gameLaunchManager.currentSessionDuration(
+            for: installation.id
+        )
+
+        let environmentStatus = environmentStatuses[installation.id]
+
+        let runtimeOptions = appState.runtimeManager.runtimes
+
+        let selectedRuntimeID = installation.runtimeID
+
+        let isRuntimeSelectionDisabled = isLaunching || isRunning
+
+        return GameCardView(
+            edition: installation.edition,
+            installation: installation,
+            isLaunching: isLaunching,
+            isRunning: isRunning,
+            totalPlaytime: totalPlaytime,
+            currentSessionDuration: currentSessionDuration,
+            environmentStatus: environmentStatus,
+            onPlay: {
+                launchGame(installation)
+            },
+            onStop: {
+                stopGame(installation)
+            },
+            onManage: {
+                selectedInstallation = installation
+            },
+            runtimeOptions: runtimeOptions,
+            selectedRuntimeID: selectedRuntimeID,
+            isRuntimeSelectionDisabled: isRuntimeSelectionDisabled,
+            onRuntimeChange: { runtimeID in
+                updateRuntime(runtimeID, for: installation)
+            }
+        )
     }
     
     private func resolveRuntime(for installation: GameInstallation) throws -> WineRuntime {
@@ -291,7 +336,9 @@ struct GamesView: View {
             return
         }
         
-        guard !runningInstallationIDs.contains(installation.id) else {
+        guard !appState.gameLaunchManager.isRunning(
+            installationID: installation.id
+        ) else {
             return
         }
         
@@ -433,8 +480,6 @@ struct GamesView: View {
                 settings: settings
             )
             
-            refreshRunningProcesses()
-            
             print(
                 "[GamesView] Launched \(installation.edition.title)"
             )
@@ -448,32 +493,70 @@ struct GamesView: View {
         }
     }
     
-    private func monitorGameProcesses() async {
-        await refreshEnvironmentStatuses()
-        
-        while !Task.isCancelled {
-            refreshRunningProcesses()
-            
-            do {
-                try await Task.sleep(for: .seconds(1))
-            } catch {
-                break
-            }
-        }
-    }
-    
-    private func refreshRunningProcesses() {
-        runningInstallationIDs = Set(
-            appState.gameLaunchManager.runningInstallationIDs()
-        )
-    }
-    
     private func stopGame(_ installation: GameInstallation) {
         appState.gameLaunchManager.stop(
             installationID: installation.id
         )
-        
-        refreshRunningProcesses()
+    }
+    
+    private func updateRuntime(_ runtimeID: UUID?, for installation: GameInstallation) {
+        guard !appState.gameLaunchManager.isRunning(
+            installationID: installation.id
+        ) else {
+            return
+        }
+
+        do {
+            try appState.setRuntime(
+                runtimeID,
+                for: installation.id
+            )
+
+            print("""
+            [GamesView] Runtime assignment changed
+
+            Edition: \(installation.edition.title)
+            Runtime: \(runtimeID?.uuidString ?? "Default")
+            """)
+
+            var updatedInstallation = installation
+            updatedInstallation.runtimeID = runtimeID
+
+            Task {
+                let runtime: WineRuntime
+
+                do {
+                    runtime = try resolveRuntime(for: updatedInstallation)
+                } catch {
+                    environmentStatuses[installation.id] = GameEnvironmentStatus(
+                        gameClientAvailable: true,
+                        runtimeAvailable: false,
+                        prefixExists: environmentStatuses[installation.id]?.prefixExists ?? false,
+                        prefixValid: environmentStatuses[installation.id]?.prefixValid ?? false,
+                        prefixIssues: [error.localizedDescription]
+                    )
+                    return
+                }
+
+                let renderer = appState.rendererManager.renderer(
+                    for: installation.edition
+                )
+
+                let report = await appState.gameLaunchManager.validateEnvironment(
+                    installation: updatedInstallation,
+                    runtime: runtime,
+                    renderer: renderer
+                )
+
+                updateEnvironmentStatus(
+                    report,
+                    for: updatedInstallation
+                )
+            }
+
+        } catch {
+            runtimeError = error.localizedDescription
+        }
     }
 }
 

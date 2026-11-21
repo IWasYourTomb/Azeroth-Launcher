@@ -23,6 +23,11 @@ struct GameCardView: View {
     let onStop: () -> Void
     let onManage: () -> Void
     
+    let runtimeOptions: [WineRuntime]
+    let selectedRuntimeID: UUID?
+    let isRuntimeSelectionDisabled: Bool
+    let onRuntimeChange: (UUID?) -> Void
+    
     @State private var isHovered = false
     
     private var isInstalled: Bool {
@@ -82,6 +87,9 @@ struct GameCardView: View {
                 if isInstalled {
                     environmentIndicator
                         .padding(.top, 12)
+                    
+                    runtimeSelector
+                        .padding(.top, 9)
                 }
                 
                 actions
@@ -366,6 +374,58 @@ struct GameCardView: View {
         }
     }
     
+    private var runtimeSelector: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "shippingbox")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(LauncherTheme.accent)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text("WINE RUNTIME")
+                    .font(.system(size: 8, weight: .bold))
+                    .tracking(1)
+                    .foregroundStyle(.white.opacity(0.55))
+
+                Text(selectedRuntimeTitle)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 4)
+
+            Picker(
+                "Wine Runtime",
+                selection: Binding(
+                    get: { selectedRuntimeID },
+                    set: { onRuntimeChange($0) }
+                )
+            ) {
+                Text("Default Runtime")
+                    .tag(Optional<UUID>.none)
+
+                ForEach(runtimeOptions) { runtime in
+                    Text(
+                        runtime.isAvailable
+                        ? runtime.displayName
+                        : "\(runtime.displayName) (Unavailable)"
+                    )
+                    .tag(Optional(runtime.id))
+                    .disabled(!runtime.isAvailable)
+                }
+            }
+            .labelsHidden()
+            .pickerStyle(.menu)
+            .fixedSize()
+            .tint(.white)
+            .disabled(isRuntimeSelectionDisabled)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 9)
+        .background(.black.opacity(0.48))
+        .clipShape(RoundedRectangle(cornerRadius: 9))
+    }
+    
     private func formatDuration(_ duration: TimeInterval) -> String {
         let totalMinutes = max(0, Int(duration / 60))
         let hours = totalMinutes / 60
@@ -376,6 +436,22 @@ struct GameCardView: View {
         }
         
         return "\(minutes)m"
+    }
+    
+    
+    
+    private var selectedRuntimeTitle: String {
+        guard let selectedRuntimeID else {
+            return String(localized: "Default Runtime")
+        }
+
+        guard let runtime = runtimeOptions.first(where: {
+            $0.id == selectedRuntimeID
+        }) else {
+            return String(localized: "Runtime unavailable")
+        }
+
+        return runtime.displayName
     }
     
     private func formatSession(_ duration: TimeInterval) -> String {

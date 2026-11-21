@@ -17,9 +17,23 @@
 		B16E10DD30A7DC7900204E65 /* Readme.md */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Readme.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		B1B15E0730A9D12500BDA05D /* Exceptions for "Azeroth Launcher" folder in "Azeroth Launcher" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Resources/Renderers/MTLD3D/Cataclysm/d3d9.dll,
+				Resources/Renderers/MTLD3D/Cataclysm/manifest.json,
+			);
+			target = B120AD0E309E8F8F00489758 /* Azeroth Launcher */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		B120AD11309E8F8F00489758 /* Azeroth Launcher */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				B1B15E0730A9D12500BDA05D /* Exceptions for "Azeroth Launcher" folder in "Azeroth Launcher" target */,
+			);
 			path = "Azeroth Launcher";
 			sourceTree = "<group>";
 		};

@@ -9,28 +9,29 @@ struct SettingsView: View {
     @Environment(RendererManager.self) private var rendererManager
     @Environment(WineRuntimeManager.self) private var runtimeManager
     @Environment(UpdaterManager.self) private var updaterManager
+    @Environment(AppState.self) private var appState
     @Environment(ThemeTransitionManager.self)
     private var themeTransitionManager
-
+    
     @AppStorage("AzerothLauncher.Language")
     private var selectedLanguage = "system"
-
+    
     @AppStorage("AzerothLauncher.Appearance")
     private var selectedAppearance = "dark"
-
+    
     @State private var runtimeError: String?
     @State private var runtimeSuccess = false
     @State private var runtimeToDelete: WineRuntime?
-
+    
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
     }
-
+    
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 30) {
                 header
-
+                
                 appearanceSection
                 languageSection
                 graphicsSection
@@ -48,7 +49,7 @@ struct SettingsView: View {
         .background {
             ZStack {
                 LauncherTheme.background
-
+                
                 ArcaneParticleView(
                     particleCount: 28,
                     intensity: 0.35
@@ -79,50 +80,67 @@ struct SettingsView: View {
                 guard let runtime = runtimeToDelete else {
                     return
                 }
-
+                
                 Task {
                     do {
                         runtimeError = nil
-
-                        try await runtimeManager.removeFromDisk(
+                        
+                        try await appState.removeRuntimeFromDisk(
                             id: runtime.id
                         )
-
+                        
                         runtimeToDelete = nil
-
+                        
                         print("[Settings] Runtime deleted")
-
+                        
                     } catch {
                         runtimeError = error.localizedDescription
                         runtimeToDelete = nil
                     }
                 }
             }
-
+            
             Button("Cancel", role: .cancel) {
                 runtimeToDelete = nil
             }
-
+            
         } message: {
             Text(
                 "The Wine Runtime files will be permanently deleted. Game installations and Prefixes will not be affected."
             )
         }
+        .alert(
+            "Wine Runtime Error",
+            isPresented: Binding(
+                get: { runtimeError != nil },
+                set: {
+                    if !$0 {
+                        runtimeError = nil
+                    }
+                }
+            )
+        ) {
+            Button("OK", role: .cancel) {
+                runtimeError = nil
+            }
+        } message: {
+            Text(runtimeError ?? "")
+        }
     }
-
+    
     private var header: some View {
         VStack(alignment: .leading, spacing: 7) {
             Text("Settings")
                 .font(.system(size: 29, weight: .bold))
                 .foregroundStyle(LauncherTheme.primaryText)
-
+            
             Text("Customize your Azeroth Launcher experience.")
                 .font(.system(size: 13))
                 .foregroundStyle(LauncherTheme.secondaryText)
         }
         .padding(.bottom, 4)
     }
-
+    
     private var appearanceSection: some View {
         settingsSection(
             title: "Appearance",
@@ -136,7 +154,7 @@ struct SettingsView: View {
                     icon: "sun.max.fill",
                     value: "light"
                 )
-
+                
                 appearanceOption(
                     title: "Dark",
                     subtitle: "Dark fantasy atmosphere",
@@ -146,43 +164,44 @@ struct SettingsView: View {
             }
         }
     }
-
+    
     private func appearanceOption(
         title: LocalizedStringKey,
         subtitle: LocalizedStringKey,
         icon: String,
         value: String
     ) -> some View {
+        
         let isSelected = selectedAppearance == value
-
+        
         return Button {
             themeTransitionManager.transition(
-                    from: selectedAppearance,
-                    to: value
-                ) {
-                    selectedAppearance = value
-                }
+                from: selectedAppearance,
+                to: value
+            ) {
+                selectedAppearance = value
+            }
         } label: {
             VStack(alignment: .leading, spacing: 17) {
                 HStack {
                     Image(systemName: icon)
                         .font(.system(size: 21))
                         .foregroundStyle(LauncherTheme.accent)
-
+                    
                     Spacer()
-
+                    
                     if isSelected {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 17))
                             .foregroundStyle(LauncherTheme.accent)
                     }
                 }
-
+                
                 VStack(alignment: .leading, spacing: 5) {
                     Text(title)
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(LauncherTheme.primaryText)
-
+                    
                     Text(subtitle)
                         .font(.system(size: 11))
                         .foregroundStyle(LauncherTheme.secondaryText)
@@ -192,23 +211,23 @@ struct SettingsView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 isSelected
-                    ? LauncherTheme.accentBackground
-                    : LauncherTheme.elevatedSurface
+                ? LauncherTheme.accentBackground
+                : LauncherTheme.elevatedSurface
             )
             .clipShape(RoundedRectangle(cornerRadius: 13))
             .overlay {
                 RoundedRectangle(cornerRadius: 13)
                     .strokeBorder(
                         isSelected
-                            ? LauncherTheme.accent.opacity(0.8)
-                            : LauncherTheme.separator,
+                        ? LauncherTheme.accent.opacity(0.8)
+                        : LauncherTheme.separator,
                         lineWidth: isSelected ? 1.5 : 1
                     )
             }
         }
         .buttonStyle(.plain)
     }
-
+    
     private var languageSection: some View {
         settingsSection(
             title: "Language",
@@ -223,19 +242,19 @@ struct SettingsView: View {
                         .frame(width: 38, height: 38)
                         .background(LauncherTheme.accentBackground)
                         .clipShape(RoundedRectangle(cornerRadius: 10))
-
+                    
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Application language")
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(LauncherTheme.primaryText)
-
+                        
                         Text("Select your preferred language.")
                             .font(.system(size: 10))
                             .foregroundStyle(LauncherTheme.secondaryText)
                     }
-
+                    
                     Spacer()
-
+                    
                     Picker("Language", selection: $selectedLanguage) {
                         Text("System Default").tag("system")
                         Text("English").tag("en")
@@ -243,10 +262,10 @@ struct SettingsView: View {
                     }
                     .frame(width: 165)
                 }
-
+                
                 Divider()
                     .overlay(LauncherTheme.separator)
-
+                
                 Label(
                     "Language selection is saved automatically.",
                     systemImage: "info.circle"
@@ -256,7 +275,7 @@ struct SettingsView: View {
             }
         }
     }
-
+    
     private var graphicsSection: some View {
         settingsSection(
             title: "Graphics",
@@ -267,7 +286,7 @@ struct SettingsView: View {
                 ForEach(GameEdition.allCases) { edition in
                     rendererRow(for: edition)
                 }
-
+                
                 Label(
                     "Renderer changes apply to the selected game edition.",
                     systemImage: "info.circle"
@@ -279,7 +298,7 @@ struct SettingsView: View {
             }
         }
     }
-
+    
     private func rendererRow(for edition: GameEdition) -> some View {
         VStack(alignment: .leading, spacing: 11) {
             HStack(spacing: 12) {
@@ -288,19 +307,19 @@ struct SettingsView: View {
                     .scaledToFill()
                     .frame(width: 48, height: 48)
                     .clipShape(RoundedRectangle(cornerRadius: 10))
-
+                
                 VStack(alignment: .leading, spacing: 5) {
                     Text(edition.title)
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(LauncherTheme.primaryText)
-
+                    
                     Text("Version \(edition.version)")
                         .font(.system(size: 10))
                         .foregroundStyle(LauncherTheme.secondaryText)
                 }
-
+                
                 Spacer()
-
+                
                 Picker(
                     "Renderer",
                     selection: Binding(
@@ -319,11 +338,11 @@ struct SettingsView: View {
                 }
                 .frame(width: 175)
             }
-
+            
             HStack(spacing: 7) {
                 Image(systemName: "info.circle")
                     .foregroundStyle(LauncherTheme.accent)
-
+                
                 Text(rendererManager.renderer(for: edition).description)
                     .foregroundStyle(LauncherTheme.secondaryText)
             }
@@ -353,19 +372,19 @@ struct SettingsView: View {
                         .frame(width: 48, height: 48)
                         .background(LauncherTheme.accentBackground)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
-
+                    
                     VStack(alignment: .leading, spacing: 5) {
                         Text("Azeroth Launcher")
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(LauncherTheme.primaryText)
-
+                        
                         Text("Version \(appVersion)")
                             .font(.system(size: 10))
                             .foregroundStyle(LauncherTheme.secondaryText)
                     }
-
+                    
                     Spacer()
-
+                    
                     Button {
                         updaterManager.checkForUpdates()
                     } label: {
@@ -376,11 +395,11 @@ struct SettingsView: View {
                             } else {
                                 Image(systemName: "arrow.clockwise")
                             }
-
+                            
                             Text(
                                 updaterManager.isUpdateInProgress
-                                    ? "Checking..."
-                                    : "Check for Updates"
+                                ? "Checking..."
+                                : "Check for Updates"
                             )
                             .font(.system(size: 11, weight: .semibold))
                         }
@@ -394,10 +413,10 @@ struct SettingsView: View {
                         updaterManager.isUpdateInProgress
                     )
                 }
-
+                
                 Divider()
                     .overlay(LauncherTheme.separator)
-
+                
                 Label(
                     "Updates are delivered securely through Sparkle.",
                     systemImage: "lock.shield"
@@ -407,55 +426,26 @@ struct SettingsView: View {
             }
         }
     }
-
+    
     private var wineSection: some View {
         settingsSection(
             title: "Wine Runtime",
             subtitle: "Manage compatibility layers.",
             icon: "shippingbox"
         ) {
-            VStack(alignment: .leading, spacing: 15) {
-
-                if runtimeManager.runtimes.isEmpty {
-                    emptyRuntimeState
-                } else {
-                    ForEach(runtimeManager.runtimes) { runtime in
-                        runtimeRow(runtime)
-                    }
-                }
-
+            VStack(alignment: .leading, spacing: 17) {
+                
+                runtimeCatalogSection
+                
+                Divider()
+                    .overlay(LauncherTheme.separator)
+                
+                installedRuntimesSection
+                
                 HStack(spacing: 10) {
                     Button {
-                        installRuntime()
-                    } label: {
-                        HStack(spacing: 8) {
-                            if runtimeManager.isInstalling {
-                                ProgressView()
-                                    .controlSize(.small)
-                            } else {
-                                Image(systemName: "plus.circle.fill")
-                            }
-
-                            Text(
-                                runtimeManager.isInstalling
-                                    ? "Installing..."
-                                    : "Install Runtime"
-                            )
-                            .font(.system(size: 11, weight: .semibold))
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(LauncherTheme.accent)
-                    .disabled(
-                        runtimeManager.isInstalling ||
-                        runtimeManager.isDetecting
-                    )
-
-                    Button {
                         runtimeError = nil
-
+                        
                         Task {
                             await runtimeManager.detectRuntimes()
                         }
@@ -467,11 +457,11 @@ struct SettingsView: View {
                             } else {
                                 Image(systemName: "arrow.clockwise")
                             }
-
+                            
                             Text(
                                 runtimeManager.isDetecting
-                                    ? "Scanning..."
-                                    : "Detect"
+                                ? "Scanning..."
+                                : "Detect Runtimes"
                             )
                             .font(.system(size: 11, weight: .semibold))
                         }
@@ -484,7 +474,7 @@ struct SettingsView: View {
                         runtimeManager.isDetecting
                     )
                 }
-
+                
                 if let runtimeError {
                     Label(
                         runtimeError,
@@ -494,7 +484,7 @@ struct SettingsView: View {
                     .foregroundStyle(.red)
                     .fixedSize(horizontal: false, vertical: true)
                 }
-
+                
                 if runtimeSuccess {
                     Label(
                         "Wine Runtime installed successfully.",
@@ -503,10 +493,10 @@ struct SettingsView: View {
                     .font(.system(size: 11))
                     .foregroundStyle(.green)
                 }
-
+                
                 Divider()
                     .overlay(LauncherTheme.separator)
-
+                
                 Label(
                     "One Wine Runtime can be shared between multiple game installations. Each game keeps its own Prefix.",
                     systemImage: "info.circle"
@@ -517,7 +507,184 @@ struct SettingsView: View {
             }
         }
     }
-
+    
+    private var runtimeCatalogSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Available Releases")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(LauncherTheme.primaryText)
+                
+                Text("Choose a Wine Runtime version to install.")
+                    .font(.system(size: 10))
+                    .foregroundStyle(LauncherTheme.secondaryText)
+            }
+            
+            ForEach(runtimeManager.availableReleases) { release in
+                runtimeReleaseRow(release)
+            }
+        }
+    }
+    
+    private func runtimeReleaseRow(_ release: WineRuntimeRelease) -> some View {
+        
+        let registeredRuntime = runtimeManager.installedRuntime(
+            for: release
+        )
+        
+        let filesInstalled = runtimeManager.isInstalled(
+            release: release
+        )
+        
+        let isRegistered = registeredRuntime != nil
+        
+        let isInstalling =
+        runtimeManager.isInstallingReleaseID == release.id
+        
+        let buttonTitle: LocalizedStringKey = {
+            if isRegistered {
+                return "Installed"
+            }
+            
+            if filesInstalled {
+                return "Register"
+            }
+            
+            return "Install"
+        }()
+        
+        return HStack(spacing: 13) {
+            
+            Image(systemName: "shippingbox.fill")
+                .font(.system(size: 20))
+                .foregroundStyle(
+                    isRegistered
+                    ? .green
+                    : LauncherTheme.accent
+                )
+                .frame(width: 45, height: 45)
+                .background(LauncherTheme.accentBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 11))
+            
+            VStack(alignment: .leading, spacing: 5) {
+                
+                Text(release.displayName)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(LauncherTheme.primaryText)
+                
+                Text(release.directoryName)
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(LauncherTheme.secondaryText)
+                
+                if isRegistered, let runtime = registeredRuntime {
+                    HStack(spacing: 5) {
+                        Circle()
+                            .fill(runtime.isAvailable ? Color.green : Color.red)
+                            .frame(width: 6, height: 6)
+                        
+                        Text(
+                            runtime.isAvailable
+                            ? "Available"
+                            : "Unavailable"
+                        )
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(
+                            runtime.isAvailable ? .green : .red
+                        )
+                    }
+                } else if filesInstalled {
+                    Label(
+                        "Files detected",
+                        systemImage: "folder"
+                    )
+                    .font(.system(size: 9))
+                    .foregroundStyle(LauncherTheme.secondaryText)
+                } else {
+                    Text("Not installed")
+                        .font(.system(size: 9))
+                        .foregroundStyle(LauncherTheme.secondaryText)
+                }
+            }
+            
+            Spacer(minLength: 5)
+            
+            Button {
+                installRuntime(release)
+            } label: {
+                HStack(spacing: 7) {
+                    if isInstalling {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else if isRegistered {
+                        Image(systemName: "checkmark")
+                    } else if filesInstalled {
+                        Image(systemName: "arrow.clockwise")
+                    } else {
+                        Image(systemName: "arrow.down.circle")
+                    }
+                    
+                    Text(
+                        isInstalling
+                        ? "Installing..."
+                        : buttonTitle
+                    )
+                    .font(.system(size: 10, weight: .semibold))
+                }
+                .frame(minWidth: 95)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 8)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(isRegistered ? .green : LauncherTheme.accent)
+            .disabled(
+                isRegistered ||
+                runtimeManager.isInstalling ||
+                runtimeManager.isDetecting
+            )
+        }
+        .padding(13)
+        .background(LauncherTheme.elevatedSurface)
+        .clipShape(RoundedRectangle(cornerRadius: 11))
+        .overlay {
+            RoundedRectangle(cornerRadius: 11)
+                .strokeBorder(
+                    isInstalling
+                    ? LauncherTheme.accent.opacity(0.7)
+                    : LauncherTheme.separator,
+                    lineWidth: isInstalling ? 1.5 : 1
+                )
+        }
+    }
+    
+    private var installedRuntimesSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Installed Runtimes")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(LauncherTheme.primaryText)
+                
+                Spacer()
+                
+                Text("\(runtimeManager.runtimes.count)")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(LauncherTheme.secondaryText)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 4)
+                    .background(LauncherTheme.elevatedSurface)
+                    .clipShape(Capsule())
+            }
+            
+            if runtimeManager.runtimes.isEmpty {
+                emptyRuntimeState
+            } else {
+                ForEach(runtimeManager.runtimes) { runtime in
+                    runtimeRow(runtime)
+                }
+            }
+        }
+    }
+    
     private var emptyRuntimeState: some View {
         HStack(spacing: 13) {
             Image(systemName: "shippingbox")
@@ -526,17 +693,17 @@ struct SettingsView: View {
                 .frame(width: 48, height: 48)
                 .background(LauncherTheme.accentBackground)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
-
+            
             VStack(alignment: .leading, spacing: 5) {
                 Text("No Wine Runtime installed")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(LauncherTheme.primaryText)
-
+                
                 Text("Install a Wine Runtime to run World of Warcraft.")
                     .font(.system(size: 10))
                     .foregroundStyle(LauncherTheme.secondaryText)
             }
-
+            
             Spacer(minLength: 0)
         }
         .padding(14)
@@ -548,40 +715,41 @@ struct SettingsView: View {
                 .strokeBorder(LauncherTheme.separator, lineWidth: 1)
         }
     }
-
+    
     private func runtimeRow(_ runtime: WineRuntime) -> some View {
         HStack(spacing: 13) {
             Image(systemName: "shippingbox.fill")
                 .font(.system(size: 19))
                 .foregroundStyle(
                     runtime.isAvailable
-                        ? LauncherTheme.accent
-                        : LauncherTheme.secondaryText
+                    ? LauncherTheme.accent
+                    : LauncherTheme.secondaryText
                 )
                 .frame(width: 44, height: 44)
                 .background(LauncherTheme.accentBackground)
                 .clipShape(RoundedRectangle(cornerRadius: 11))
-
+            
             VStack(alignment: .leading, spacing: 5) {
+                
                 Text(runtime.name)
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(LauncherTheme.primaryText)
-
+                
                 Text("Version \(runtime.version)")
                     .font(.system(size: 10))
                     .foregroundStyle(LauncherTheme.secondaryText)
-
+                
                 HStack(spacing: 5) {
                     Circle()
                         .fill(
                             runtime.isAvailable ? Color.green : Color.red
                         )
                         .frame(width: 6, height: 6)
-
+                    
                     Text(
                         runtime.isAvailable
-                            ? "Available"
-                            : "Unavailable"
+                        ? "Available"
+                        : "Unavailable"
                     )
                     .font(.system(size: 9, weight: .medium))
                     .foregroundStyle(
@@ -589,50 +757,75 @@ struct SettingsView: View {
                     )
                 }
             }
-
+            
             Spacer(minLength: 5)
-
+            
             if runtime.isDefault && runtime.isAvailable {
-                Label("Default", systemImage: "checkmark.circle.fill")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(.green)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 7)
-                    .background(Color.green.opacity(0.1))
-                    .clipShape(Capsule())
+                
+                Label(
+                    "Default",
+                    systemImage: "checkmark.circle.fill"
+                )
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(.green)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 7)
+                .background(Color.green.opacity(0.1))
+                .clipShape(Capsule())
+                
             } else if runtime.isAvailable {
+                
                 Button("Set Default") {
                     runtimeManager.setDefault(id: runtime.id)
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
             }
-
+            
             Menu {
+                
                 if runtime.isAvailable && !runtime.isDefault {
                     Button {
                         runtimeManager.setDefault(id: runtime.id)
                     } label: {
-                        Label("Set as Default", systemImage: "checkmark.circle")
+                        Label(
+                            "Set as Default",
+                            systemImage: "checkmark.circle"
+                        )
                     }
                 }
-
+                
                 Button {
-                    runtimeManager.forget(id: runtime.id)
+                    do {
+                        runtimeError = nil
+                        
+                        try appState.forgetRuntime(
+                            id: runtime.id
+                        )
+                        
+                    } catch {
+                        runtimeError = error.localizedDescription
+                    }
                 } label: {
-                    Label("Forget Runtime", systemImage: "minus.circle")
+                    Label(
+                        "Forget Runtime",
+                        systemImage: "minus.circle"
+                    )
                 }
-
+                
                 if runtimeManager.canRemoveFromDisk(runtime) {
                     Divider()
-
+                    
                     Button(role: .destructive) {
                         runtimeToDelete = runtime
                     } label: {
-                        Label("Delete from Disk", systemImage: "trash")
+                        Label(
+                            "Delete from Disk",
+                            systemImage: "trash"
+                        )
                     }
                 }
-
+                
             } label: {
                 Image(systemName: "ellipsis.circle")
                     .font(.system(size: 17))
@@ -651,6 +844,33 @@ struct SettingsView: View {
         }
     }
 
+    private func installRuntime(_ release: WineRuntimeRelease) {
+        runtimeError = nil
+        runtimeSuccess = false
+    
+        Task {
+            do {
+                try await runtimeManager.installRuntime(
+                    release: release
+                )
+                
+                runtimeSuccess = true
+                
+                print(
+                    "[Settings] Wine Runtime installed: \(release.displayName)"
+                )
+                
+            } catch {
+                
+                runtimeError = error.localizedDescription
+                
+                print(
+                    "[Settings] Runtime installation failed: \(error)"
+                )
+            }
+        }
+    }
+    
     private func settingsSection<Content: View>(
         title: LocalizedStringKey,
         subtitle: LocalizedStringKey,
@@ -665,42 +885,30 @@ struct SettingsView: View {
                     .frame(width: 42, height: 42)
                     .background(LauncherTheme.accentBackground)
                     .clipShape(RoundedRectangle(cornerRadius: 11))
-
+                
                 VStack(alignment: .leading, spacing: 4) {
+                    
                     Text(title)
                         .font(.system(size: 15, weight: .bold))
                         .foregroundStyle(LauncherTheme.primaryText)
-
+                    
                     Text(subtitle)
                         .font(.system(size: 11))
                         .foregroundStyle(LauncherTheme.secondaryText)
                 }
             }
-
+            
             content()
                 .padding(16)
                 .background(LauncherTheme.surface)
                 .clipShape(RoundedRectangle(cornerRadius: 14))
                 .overlay {
                     RoundedRectangle(cornerRadius: 14)
-                        .strokeBorder(LauncherTheme.separator, lineWidth: 1)
+                        .strokeBorder(
+                            LauncherTheme.separator,
+                            lineWidth: 1
+                        )
                 }
-        }
-    }
-
-    private func installRuntime() {
-        runtimeError = nil
-        runtimeSuccess = false
-
-        Task {
-            do {
-                try await runtimeManager.installRuntime()
-                runtimeSuccess = true
-                print("[Settings] Wine Runtime installed successfully")
-            } catch {
-                runtimeError = error.localizedDescription
-                print("[Settings] Runtime installation failed: \(error)")
-            }
         }
     }
 }

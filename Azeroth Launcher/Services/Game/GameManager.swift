@@ -25,17 +25,20 @@ final class GameManager {
     }
 
     func add(_ installation: GameInstallation) {
+        var installation = installation
 
-        if let existing = installations.first(where: {
+        if let existingIndex = installations.firstIndex(where: {
             $0.edition == installation.edition
         }) {
+            let existing = installations[existingIndex]
+
             closeAccess(for: existing.id)
-        }
 
-        if let index = installations.firstIndex(where: {
-            $0.edition == installation.edition
-        }) {
-            installations[index] = installation
+            if installation.runtimeID == nil {
+                installation.runtimeID = existing.runtimeID
+            }
+
+            installations[existingIndex] = installation
         } else {
             installations.append(installation)
         }
@@ -187,6 +190,34 @@ final class GameManager {
             "[GameManager] Runtime updated for \(installations[index].edition.title): \(runtimeID?.uuidString ?? "Default")"
         )
     }
+    
+    func installations(usingRuntimeID runtimeID: UUID) -> [GameInstallation] {
+            installations.filter {
+                $0.runtimeID == runtimeID
+            }
+        }
+
+        func reassignRuntime(
+            from sourceRuntimeID: UUID,
+            to destinationRuntimeID: UUID?
+        ) {
+            var changed = false
+            for index in installations.indices {
+                guard installations[index].runtimeID == sourceRuntimeID else {
+                    continue
+                }
+
+                installations[index].runtimeID = destinationRuntimeID
+                changed = true
+            }
+            guard changed else {
+                return
+            }
+            save()
+            print(
+                "[GameManager] Runtime assignments updated: \(sourceRuntimeID) -> \(destinationRuntimeID?.uuidString ?? "Default")"
+            )
+        }
 
     private func closeAccess(for id: UUID) {
         guard let session = accessSessions.removeValue(forKey: id) else {

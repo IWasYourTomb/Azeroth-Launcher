@@ -8,17 +8,6 @@ import CryptoKit
 import Darwin
 
 actor WineRuntimeInstaller {
-    private let runtimeName = "WineAndAqua"
-    private let runtimeVersion = "11.13 (r17)"
-    private let runtimeDirectoryName = "Wine-r17"
-
-    private let downloadURL = URL(
-        string: "https://github.com/WoWSilicon/WoWSilicon/releases/download/wine-runtime-r17/WoWSilicon-WineRuntime-r17.tar.xz"
-    )!
-
-    private let expectedSHA256 =
-        "dc67cf0c2dd1e4c1cfaffe924f4737aaa594645b135a7973ac3505c83c70f882"
-
     private let quarantineAttribute = "com.apple.quarantine"
 
     private var applicationSupportDirectory: URL {
@@ -27,10 +16,9 @@ actor WineRuntimeInstaller {
             .appendingPathComponent("AzerothLauncher", isDirectory: true)
     }
 
-    private var runtimeDirectory: URL {
+    private var runtimesDirectory: URL {
         applicationSupportDirectory
             .appendingPathComponent("Runtimes", isDirectory: true)
-            .appendingPathComponent(runtimeDirectoryName, isDirectory: true)
     }
 
     private var downloadsDirectory: URL {
@@ -38,85 +26,115 @@ actor WineRuntimeInstaller {
             .appendingPathComponent("Downloads", isDirectory: true)
     }
 
-    private var archiveURL: URL {
+    private func runtimeDirectory(for release: WineRuntimeRelease) -> URL {
+        runtimesDirectory
+            .appendingPathComponent(release.directoryName, isDirectory: true)
+    }
+
+    private func stagingDirectory(for release: WineRuntimeRelease) -> URL {
+        runtimesDirectory
+            .appendingPathComponent(
+                release.stagingDirectoryName,
+                isDirectory: true
+            )
+    }
+
+    private func archiveURL(for release: WineRuntimeRelease) -> URL {
         downloadsDirectory
-            .appendingPathComponent("wine-runtime-r17.tar.xz")
+            .appendingPathComponent(release.archiveFileName)
     }
 
-    private var stagingDirectory: URL {
-        applicationSupportDirectory
-            .appendingPathComponent("Runtimes", isDirectory: true)
-            .appendingPathComponent(".Wine-r17-staging", isDirectory: true)
-    }
-
-    private var backupDirectory: URL {
-        applicationSupportDirectory
-            .appendingPathComponent("Runtimes", isDirectory: true)
-            .appendingPathComponent(".Wine-r17-backup", isDirectory: true)
-    }
-
-    private var wineExecutable: URL {
-        runtimeDirectory
+    private func wineExecutable(for release: WineRuntimeRelease) -> URL {
+        runtimeDirectory(for: release)
             .appendingPathComponent("bin", isDirectory: true)
             .appendingPathComponent("wine")
     }
 
-    private var wineserverExecutable: URL {
-        runtimeDirectory
+    private func wineserverExecutable(for release: WineRuntimeRelease) -> URL {
+        runtimeDirectory(for: release)
             .appendingPathComponent("bin", isDirectory: true)
             .appendingPathComponent("wineserver")
     }
 
-    func install() async throws -> WineRuntime {
+    func install(release: WineRuntimeRelease) async throws -> WineRuntime {
 
         print("[WineRuntimeInstaller] Starting installation")
+        print("[WineRuntimeInstaller] Release: \(release.displayName)")
+        print("[WineRuntimeInstaller] Directory: \(release.directoryName)")
 
-        if isInstalled {
-            print("[WineRuntimeInstaller] Runtime already installed")
-            return makeRuntime()
+        let destination = runtimeDirectory(for: release)
+        
+        if FileManager.default.fileExists(atPath: destination.path) {
+
+            if isInstalled(release: release) {
+                print("[WineRuntimeInstaller] Runtime already installed")
+
+                return makeRuntime(release: release)
+            }
+
+            print("[WineRuntimeInstaller] Existing Runtime is invalid")
+
+            throw InstallerError.existingRuntimeInvalid(
+                destination.path
+            )
         }
 
         do {
+
             try createDirectories()
 
             try diagnoseQuarantineExclusion()
 
-            try downloadRuntime()
+            try downloadRuntime(release: release)
 
-            try verifyChecksum()
+            try verifyChecksum(release: release)
 
             print("[WineRuntimeInstaller] Checking archive quarantine...")
 
-            if hasQuarantineAttribute(at: archiveURL) {
+            let archive = archiveURL(for: release)
+
+            if hasQuarantineAttribute(at: archive) {
                 print("[WineRuntimeInstaller] WARNING: Archive contains quarantine attribute")
             } else {
                 print("[WineRuntimeInstaller] Archive has no quarantine attribute")
             }
 
-            try extractRuntime()
+            try extractRuntime(release: release)
 
-            try validateRuntime()
+            try validateRuntime(at: stagingDirectory(for: release))
 
-            try diagnoseExtractedQuarantine()
+            try diagnoseExtractedQuarantine(release: release)
 
-            try setExecutablePermissions()
+            try setExecutablePermissions(release: release)
 
-            try diagnoseRuntime()
+            try diagnoseRuntime(release: release)
 
-            try installStagingRuntime()
+            try installStagingRuntime(release: release)
 
             print("[WineRuntimeInstaller] Installation completed successfully")
 
-            return makeRuntime()
+            return makeRuntime(release: release)
 
         } catch {
-            print("[WineRuntimeInstaller] Installation failed: \(error.localizedDescription)")
+            let staging = stagingDirectory(for: release)
+
+            if FileManager.default.fileExists(atPath: staging.path) {
+                try? FileManager.default.removeItem(at: staging)
+            }
+
+            print(
+                "[WineRuntimeInstaller] Installation failed: \(error.localizedDescription)"
+            )
+
             throw error
         }
     }
+    
+    func install() async throws -> WineRuntime {
+        try await install(release: .r17)
+    }
 
     private func createDirectories() throws {
-
         let fileManager = FileManager.default
 
         try fileManager.createDirectory(
@@ -130,13 +148,15 @@ actor WineRuntimeInstaller {
         )
 
         try fileManager.createDirectory(
-            at: runtimeDirectory.deletingLastPathComponent(),
+            at: runtimesDirectory,
             withIntermediateDirectories: true
         )
 
-        print("[WineRuntimeInstaller] Application directory: \(applicationSupportDirectory.path)")
+        print(
+            "[WineRuntimeInstaller] Application directory: \(applicationSupportDirectory.path)"
+        )
     }
-    
+
     private func diagnoseQuarantineExclusion() throws {
 
         let probeURL = downloadsDirectory
@@ -160,14 +180,16 @@ actor WineRuntimeInstaller {
         }
     }
 
-    private func diagnoseExtractedQuarantine() throws {
+    private func diagnoseExtractedQuarantine(release: WineRuntimeRelease) throws {
+
+        let staging = stagingDirectory(for: release)
 
         print("[WineRuntimeInstaller] === Extracted quarantine diagnostics ===")
 
         let fileManager = FileManager.default
 
         guard let enumerator = fileManager.enumerator(
-            at: stagingDirectory,
+            at: staging,
             includingPropertiesForKeys: nil,
             options: []
         ) else {
@@ -184,7 +206,9 @@ actor WineRuntimeInstaller {
             if hasQuarantineAttribute(at: fileURL) {
                 quarantinedFiles += 1
 
-                print("[WineRuntimeInstaller] QUARANTINE FOUND: \(fileURL.path)")
+                print(
+                    "[WineRuntimeInstaller] QUARANTINE FOUND: \(fileURL.path)"
+                )
             }
         }
 
@@ -192,15 +216,35 @@ actor WineRuntimeInstaller {
         print("[WineRuntimeInstaller] Quarantined files: \(quarantinedFiles)")
     }
 
-    private func downloadRuntime() throws {
+    private func hasQuarantineAttribute(at url: URL) -> Bool {
+
+        let result = url.path.withCString { path in
+            quarantineAttribute.withCString { attributeName in
+                Darwin.getxattr(
+                    path,
+                    attributeName,
+                    nil,
+                    0,
+                    0,
+                    0
+                )
+            }
+        }
+
+        return result >= 0
+    }
+
+    private func downloadRuntime(release: WineRuntimeRelease) throws {
+        let archive = archiveURL(for: release)
 
         print("[WineRuntimeInstaller] Downloading Wine Runtime using curl...")
-        print("[WineRuntimeInstaller] Archive path: \(archiveURL.path)")
+        print("[WineRuntimeInstaller] URL: \(release.downloadURL)")
+        print("[WineRuntimeInstaller] Archive path: \(archive.path)")
 
         let fileManager = FileManager.default
 
-        if fileManager.fileExists(atPath: archiveURL.path) {
-            try fileManager.removeItem(at: archiveURL)
+        if fileManager.fileExists(atPath: archive.path) {
+            try fileManager.removeItem(at: archive)
         }
 
         let process = Process()
@@ -215,9 +259,9 @@ actor WineRuntimeInstaller {
             "--connect-timeout", "30",
             "--max-time", "900",
             "--retry", "2",
-            "--output", archiveURL.path,
+            "--output", archive.path,
             "--write-out", "%{http_code}",
-            downloadURL.absoluteString
+            release.downloadURL.absoluteString
         ]
 
         let outputPipe = Pipe()
@@ -231,7 +275,9 @@ actor WineRuntimeInstaller {
         do {
             try process.run()
         } catch {
-            throw InstallerError.downloadFailed(error.localizedDescription)
+            throw InstallerError.downloadFailed(
+                error.localizedDescription
+            )
         }
 
         process.waitUntilExit()
@@ -258,35 +304,46 @@ actor WineRuntimeInstaller {
 
         guard process.terminationStatus == 0,
               httpStatus == "200" else {
+
             throw InstallerError.downloadFailed(
                 "curl failed. HTTP: \(httpStatus), exit code: \(process.terminationStatus)"
             )
         }
 
-        guard fileManager.fileExists(atPath: archiveURL.path) else {
-            throw InstallerError.downloadFailed("Downloaded archive does not exist")
+        guard fileManager.fileExists(atPath: archive.path) else {
+            throw InstallerError.downloadFailed(
+                "Downloaded archive does not exist"
+            )
         }
 
-        let attributes = try fileManager.attributesOfItem(atPath: archiveURL.path)
+        let attributes = try fileManager.attributesOfItem(
+            atPath: archive.path
+        )
+
         let fileSize = attributes[.size] as? Int64 ?? 0
 
         print("[WineRuntimeInstaller] Archive size: \(fileSize) bytes")
 
         guard fileSize > 0 else {
-            throw InstallerError.downloadFailed("Downloaded archive is empty")
+            throw InstallerError.downloadFailed(
+                "Downloaded archive is empty"
+            )
         }
     }
 
-    private func verifyChecksum() throws {
+
+    private func verifyChecksum(release: WineRuntimeRelease) throws {
 
         print("[WineRuntimeInstaller] Verifying SHA256...")
 
-        let actualHash = try calculateSHA256(for: archiveURL)
+        let actualHash = try calculateSHA256(
+            for: archiveURL(for: release)
+        )
 
-        print("[WineRuntimeInstaller] Expected SHA256: \(expectedSHA256)")
+        print("[WineRuntimeInstaller] Expected SHA256: \(release.sha256)")
         print("[WineRuntimeInstaller] Actual SHA256:   \(actualHash)")
 
-        guard actualHash.lowercased() == expectedSHA256.lowercased() else {
+        guard actualHash.lowercased() == release.sha256.lowercased() else {
             throw InstallerError.checksumMismatch
         }
 
@@ -321,30 +378,19 @@ actor WineRuntimeInstaller {
             .joined()
     }
 
-    private func hasQuarantineAttribute(at url: URL) -> Bool {
-
-        let result = url.path.withCString { path in
-            quarantineAttribute.withCString { attributeName in
-                Darwin.getxattr(path, attributeName, nil, 0, 0, 0)
-            }
-        }
-
-        return result >= 0
-    }
-
-
-    private func extractRuntime() throws {
+    private func extractRuntime(release: WineRuntimeRelease) throws {
 
         print("[WineRuntimeInstaller] Extracting Wine Runtime...")
 
         let fileManager = FileManager.default
+        let staging = stagingDirectory(for: release)
 
-        if fileManager.fileExists(atPath: stagingDirectory.path) {
-            try fileManager.removeItem(at: stagingDirectory)
+        if fileManager.fileExists(atPath: staging.path) {
+            try fileManager.removeItem(at: staging)
         }
 
         try fileManager.createDirectory(
-            at: stagingDirectory,
+            at: staging,
             withIntermediateDirectories: true
         )
 
@@ -354,10 +400,10 @@ actor WineRuntimeInstaller {
 
         process.arguments = [
             "-xJf",
-            archiveURL.path,
+            archiveURL(for: release).path,
             "--strip-components", "1",
             "-C",
-            stagingDirectory.path
+            staging.path
         ]
 
         let errorPipe = Pipe()
@@ -368,15 +414,21 @@ actor WineRuntimeInstaller {
         do {
             try process.run()
         } catch {
-            throw InstallerError.extractionFailed(error.localizedDescription)
+            throw InstallerError.extractionFailed(
+                error.localizedDescription
+            )
         }
 
         process.waitUntilExit()
 
         let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
-        let errorOutput = String(data: errorData, encoding: .utf8) ?? ""
+        let errorOutput = String(
+            data: errorData,
+            encoding: .utf8
+        ) ?? ""
 
         guard process.terminationStatus == 0 else {
+
             throw InstallerError.extractionFailed(
                 errorOutput.isEmpty
                     ? "tar exited with code \(process.terminationStatus)"
@@ -387,23 +439,23 @@ actor WineRuntimeInstaller {
         print("[WineRuntimeInstaller] Extraction completed")
     }
 
-
-    private func validateRuntime() throws {
+    private func validateRuntime(at directory: URL) throws {
 
         print("[WineRuntimeInstaller] Validating Runtime...")
 
         let fileManager = FileManager.default
 
-        let wineURL = stagingDirectory
-            .appendingPathComponent("bin")
+        let wineURL = directory
+            .appendingPathComponent("bin", isDirectory: true)
             .appendingPathComponent("wine")
 
-        let wineserverURL = stagingDirectory
-            .appendingPathComponent("bin")
+        let wineserverURL = directory
+            .appendingPathComponent("bin", isDirectory: true)
             .appendingPathComponent("wineserver")
 
         guard fileManager.fileExists(atPath: wineURL.path),
               fileManager.fileExists(atPath: wineserverURL.path) else {
+
             throw InstallerError.invalidRuntime
         }
 
@@ -411,16 +463,18 @@ actor WineRuntimeInstaller {
         print("[WineRuntimeInstaller] wineserver: \(wineserverURL.path)")
     }
 
-    private func setExecutablePermissions() throws {
+    private func setExecutablePermissions(release: WineRuntimeRelease) throws {
 
         print("[WineRuntimeInstaller] Setting executable permissions...")
 
-        let wineURL = stagingDirectory
-            .appendingPathComponent("bin")
+        let staging = stagingDirectory(for: release)
+
+        let wineURL = staging
+            .appendingPathComponent("bin", isDirectory: true)
             .appendingPathComponent("wine")
 
-        let wineserverURL = stagingDirectory
-            .appendingPathComponent("bin")
+        let wineserverURL = staging
+            .appendingPathComponent("bin", isDirectory: true)
             .appendingPathComponent("wineserver")
 
         try runCommand(
@@ -436,14 +490,16 @@ actor WineRuntimeInstaller {
         print("[WineRuntimeInstaller] Permissions updated")
     }
 
-    private func diagnoseRuntime() throws {
+    private func diagnoseRuntime(release: WineRuntimeRelease) throws {
 
-        let wineURL = stagingDirectory
-            .appendingPathComponent("bin")
+        let staging = stagingDirectory(for: release)
+
+        let wineURL = staging
+            .appendingPathComponent("bin", isDirectory: true)
             .appendingPathComponent("wine")
 
-        let wineserverURL = stagingDirectory
-            .appendingPathComponent("bin")
+        let wineserverURL = staging
+            .appendingPathComponent("bin", isDirectory: true)
             .appendingPathComponent("wineserver")
 
         print("[WineRuntimeInstaller] === Runtime diagnostics ===")
@@ -460,7 +516,9 @@ actor WineRuntimeInstaller {
 
         let fileManager = FileManager.default
 
-        let executable = fileManager.isExecutableFile(atPath: url.path)
+        let executable = fileManager.isExecutableFile(
+            atPath: url.path
+        )
 
         let accessResult = url.path.withCString {
             Darwin.access($0, X_OK)
@@ -505,8 +563,15 @@ actor WineRuntimeInstaller {
         let outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
         let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
 
-        let output = String(data: outputData, encoding: .utf8) ?? ""
-        let error = String(data: errorData, encoding: .utf8) ?? ""
+        let output = String(
+            data: outputData,
+            encoding: .utf8
+        ) ?? ""
+
+        let error = String(
+            data: errorData,
+            encoding: .utf8
+        ) ?? ""
 
         print("[WineRuntimeInstaller] Wine output: \(output)")
 
@@ -520,62 +585,39 @@ actor WineRuntimeInstaller {
             )
         }
     }
-
-    private func installStagingRuntime() throws {
+    
+    private func installStagingRuntime(release: WineRuntimeRelease) throws {
 
         let fileManager = FileManager.default
 
-        var movedExistingRuntime = false
+        let staging = stagingDirectory(for: release)
+        let destination = runtimeDirectory(for: release)
+        
+        guard !fileManager.fileExists(atPath: destination.path) else {
 
-        if fileManager.fileExists(atPath: backupDirectory.path) {
-            try fileManager.removeItem(at: backupDirectory)
-        }
-
-        if fileManager.fileExists(atPath: runtimeDirectory.path) {
-
-            print("[WineRuntimeInstaller] Backing up existing Runtime...")
-
-            try fileManager.moveItem(
-                at: runtimeDirectory,
-                to: backupDirectory
+            throw InstallerError.existingRuntimeInvalid(
+                destination.path
             )
-
-            movedExistingRuntime = true
         }
 
         do {
-
             try fileManager.moveItem(
-                at: stagingDirectory,
-                to: runtimeDirectory
+                at: staging,
+                to: destination
             )
 
-            print("[WineRuntimeInstaller] Runtime moved to final directory")
-
-            if movedExistingRuntime,
-               fileManager.fileExists(atPath: backupDirectory.path) {
-
-                try? fileManager.removeItem(at: backupDirectory)
-            }
+            print(
+                "[WineRuntimeInstaller] Runtime moved to: \(destination.path)"
+            )
 
         } catch {
-
-            print("[WineRuntimeInstaller] Failed to move staging Runtime")
-
-            if movedExistingRuntime,
-               fileManager.fileExists(atPath: backupDirectory.path) {
-
-                try? fileManager.moveItem(
-                    at: backupDirectory,
-                    to: runtimeDirectory
-                )
-            }
 
             throw InstallerError.installationFailed(
                 error.localizedDescription
             )
         }
     }
+
 
     private func runCommand(_ executable: String, arguments: [String]) throws {
 
@@ -600,9 +642,14 @@ actor WineRuntimeInstaller {
         process.waitUntilExit()
 
         let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
-        let errorOutput = String(data: errorData, encoding: .utf8) ?? ""
+
+        let errorOutput = String(
+            data: errorData,
+            encoding: .utf8
+        ) ?? ""
 
         guard process.terminationStatus == 0 else {
+
             throw InstallerError.installationFailed(
                 errorOutput.isEmpty
                     ? "\(executable) exited with code \(process.terminationStatus)"
@@ -611,21 +658,26 @@ actor WineRuntimeInstaller {
         }
     }
 
-    private var isInstalled: Bool {
+
+    private func isInstalled(release: WineRuntimeRelease) -> Bool {
 
         let fileManager = FileManager.default
+        let directory = runtimeDirectory(for: release)
 
-        guard fileManager.isExecutableFile(atPath: wineExecutable.path),
-              fileManager.isExecutableFile(atPath: wineserverExecutable.path) else {
+        let wineURL = wineExecutable(for: release)
+        let wineserverURL = wineserverExecutable(for: release)
+
+        guard fileManager.isExecutableFile(atPath: wineURL.path),
+              fileManager.isExecutableFile(atPath: wineserverURL.path) else {
             return false
         }
 
-        guard !hasQuarantineAttribute(at: runtimeDirectory) else {
+        guard !hasQuarantineAttribute(at: directory) else {
             return false
         }
 
         guard let enumerator = fileManager.enumerator(
-            at: runtimeDirectory,
+            at: directory,
             includingPropertiesForKeys: nil,
             options: []
         ) else {
@@ -633,6 +685,7 @@ actor WineRuntimeInstaller {
         }
 
         for case let fileURL as URL in enumerator {
+
             if hasQuarantineAttribute(at: fileURL) {
                 return false
             }
@@ -641,12 +694,12 @@ actor WineRuntimeInstaller {
         return true
     }
 
-    private func makeRuntime() -> WineRuntime {
 
+    private func makeRuntime(release: WineRuntimeRelease    ) -> WineRuntime {
         WineRuntime(
-            name: runtimeName,
-            version: runtimeVersion,
-            executableURL: wineExecutable
+            name: release.name,
+            version: release.version,
+            executableURL: wineExecutable(for: release)
         )
     }
 
@@ -658,8 +711,10 @@ actor WineRuntimeInstaller {
         case installationFailed(String)
         case permissionFixFailed(String)
         case quarantineDetected
+        case existingRuntimeInvalid(String)
 
         var errorDescription: String? {
+
             switch self {
             case .downloadFailed(let message):
                 return "Wine Runtime download failed: \(message)"
@@ -675,6 +730,13 @@ actor WineRuntimeInstaller {
                 return "Unable to fix Wine Runtime permissions: \(message)"
             case .quarantineDetected:
                 return "macOS quarantine was detected in Wine Runtime files."
+            case .existingRuntimeInvalid(let path):
+                return """
+                A Runtime directory already exists but is invalid:
+                \(path)
+
+                Remove or repair it manually before installing this release.
+                """
             }
         }
     }

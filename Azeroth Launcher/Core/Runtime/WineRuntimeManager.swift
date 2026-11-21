@@ -11,7 +11,6 @@ import Observation
 @MainActor
 @Observable
 final class WineRuntimeManager {
-
     @ObservationIgnored
     private let detector: WineRuntimeDetector
 
@@ -31,6 +30,8 @@ final class WineRuntimeManager {
     private(set) var isInstalling = false
     private(set) var isDetecting = false
 
+    private(set) var isInstallingReleaseID: String?
+
     private(set) var installationError: String?
     private(set) var detectionError: String?
 
@@ -41,6 +42,7 @@ final class WineRuntimeManager {
             $0.isAvailable
         }
     }
+
 
     private var managedRuntimesDirectory: URL {
         FileManager.default
@@ -55,6 +57,7 @@ final class WineRuntimeManager {
             .standardizedFileURL
     }
 
+
     init(
         installer: WineRuntimeInstaller = WineRuntimeInstaller(),
         detector: WineRuntimeDetector = WineRuntimeDetector(),
@@ -67,21 +70,79 @@ final class WineRuntimeManager {
         restore()
     }
 
+    func isInstalled(release: WineRuntimeRelease) -> Bool {
 
-    func installRuntime() async throws {
+        let runtimeDirectory = managedRuntimesDirectory
+            .appendingPathComponent(
+                release.directoryName,
+                isDirectory: true
+            )
+
+        let wineExecutable = runtimeDirectory
+            .appendingPathComponent("bin", isDirectory: true)
+            .appendingPathComponent("wine")
+
+        let wineserverExecutable = runtimeDirectory
+            .appendingPathComponent("bin", isDirectory: true)
+            .appendingPathComponent("wineserver")
+
+        let fileManager = FileManager.default
+
+        return fileManager.isExecutableFile(
+            atPath: wineExecutable.path
+        ) && fileManager.isExecutableFile(
+            atPath: wineserverExecutable.path
+        )
+    }
+    
+    func installedRuntime(for release: WineRuntimeRelease) -> WineRuntime? {
+
+        let expectedExecutable = managedRuntimesDirectory
+            .appendingPathComponent(
+                release.directoryName,
+                isDirectory: true
+            )
+            .appendingPathComponent("bin", isDirectory: true)
+            .appendingPathComponent("wine")
+            .standardizedFileURL
+
+        return runtimes.first {
+            $0.executableURL.standardizedFileURL == expectedExecutable
+        }
+    }
+    
+    var availableReleases: [WineRuntimeRelease] {
+        WineRuntimeCatalog.releases
+    }
+
+
+    func installRuntime(release: WineRuntimeRelease) async throws {
+
         guard !isInstalling else {
             throw RuntimeError.installationInProgress
         }
 
         isInstalling = true
+        isInstallingReleaseID = release.id
         installationError = nil
 
         defer {
             isInstalling = false
+            isInstallingReleaseID = nil
         }
 
         do {
-            let runtime = try await installer.install()
+            if let existingRuntime = installedRuntime(for: release) {
+                print(
+                    "[WineRuntimeManager] Runtime already registered: \(existingRuntime.displayName)"
+                )
+
+                return
+            }
+
+            let runtime = try await installer.install(
+                release: release
+            )
 
             try await register(runtime)
 
@@ -90,13 +151,22 @@ final class WineRuntimeManager {
             )
 
         } catch {
+
             installationError = error.localizedDescription
+
+            print(
+                "[WineRuntimeManager] Installation failed: \(error.localizedDescription)"
+            )
+
             throw error
         }
     }
 
     func register(_ runtime: WineRuntime) async throws {
-        let runtimeDirectory = runtime.executableURL
+
+        let executableURL = runtime.executableURL.standardizedFileURL
+
+        let runtimeDirectory = executableURL
             .deletingLastPathComponent()
             .deletingLastPathComponent()
 
@@ -107,19 +177,24 @@ final class WineRuntimeManager {
         guard validation.isValid else {
             throw RuntimeError.invalidExecutable
         }
-
+        
         if let index = runtimes.firstIndex(
             where: {
-                $0.executableURL.standardizedFileURL ==
-                runtime.executableURL.standardizedFileURL
+                $0.executableURL.standardizedFileURL == executableURL
             }
         ) {
+
             runtimes[index].name = runtime.name
+
             runtimes[index].version =
                 validation.version ?? runtime.version
 
             normalizeDefaultRuntime()
             save()
+
+            print(
+                "[WineRuntimeManager] Updated registration: \(runtimes[index].displayName)"
+            )
 
             return
         }
@@ -156,10 +231,14 @@ final class WineRuntimeManager {
         var registeredCount = 0
 
         for runtime in detectedRuntimes {
+
             do {
+
                 try await register(runtime)
                 registeredCount += 1
+
             } catch {
+
                 print(
                     """
                     [WineRuntimeManager] Failed to register \
@@ -179,6 +258,7 @@ final class WineRuntimeManager {
     }
 
     func setDefault(id: UUID) {
+
         guard let runtime = runtimes.first(
             where: { $0.id == id }
         ), runtime.isAvailable else {
@@ -203,7 +283,9 @@ final class WineRuntimeManager {
     }
 
     func forget(id: UUID) {
-        guard runtimes.contains(where: { $0.id == id }) else {
+        guard runtimes.contains(
+            where: { $0.id == id }
+        ) else {
             return
         }
 
@@ -214,7 +296,9 @@ final class WineRuntimeManager {
         normalizeDefaultRuntime()
         save()
 
-        print("[WineRuntimeManager] Runtime forgotten: \(id)")
+        print(
+            "[WineRuntimeManager] Runtime forgotten: \(id)"
+        )
     }
 
     func remove(id: UUID) {
@@ -227,11 +311,13 @@ final class WineRuntimeManager {
             .deletingLastPathComponent()
             .standardizedFileURL
 
-        return runtimeDirectory.deletingLastPathComponent()
+        return runtimeDirectory
+            .deletingLastPathComponent()
             .standardizedFileURL == managedRuntimesDirectory
     }
 
     func removeFromDisk(id: UUID) async throws {
+
         guard let runtime = runtimes.first(
             where: { $0.id == id }
         ) else {
@@ -252,7 +338,9 @@ final class WineRuntimeManager {
         if fileManager.fileExists(
             atPath: runtimeDirectory.path
         ) {
+
             do {
+
                 try await Task.detached(priority: .utility) {
                     try FileManager.default.removeItem(
                         at: runtimeDirectory
@@ -260,6 +348,7 @@ final class WineRuntimeManager {
                 }.value
 
             } catch {
+
                 throw RuntimeError.runtimeRemovalFailed(
                     error.localizedDescription
                 )
@@ -272,7 +361,6 @@ final class WineRuntimeManager {
             "[WineRuntimeManager] Runtime deleted: \(runtimeDirectory.path)"
         )
     }
-
 
     private func save() {
         do {
@@ -298,6 +386,7 @@ final class WineRuntimeManager {
         }
 
         do {
+
             runtimes = try JSONDecoder().decode(
                 [WineRuntime].self,
                 from: data
@@ -311,6 +400,7 @@ final class WineRuntimeManager {
             )
 
         } catch {
+
             print(
                 "[WineRuntimeManager] Restore failed: \(error)"
             )
@@ -327,6 +417,7 @@ final class WineRuntimeManager {
         }
 
         guard let firstAvailable = availableIndices.first else {
+
             for index in runtimes.indices {
                 runtimes[index].isDefault = false
             }
@@ -359,6 +450,7 @@ enum RuntimeError: LocalizedError {
     case runtimeRemovalFailed(String)
 
     var errorDescription: String? {
+
         switch self {
 
         case .invalidExecutable:
