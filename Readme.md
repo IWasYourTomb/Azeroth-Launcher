@@ -14,15 +14,17 @@ Manage your game installations, configure Wine environments, customize graphics,
   <img src="https://img.shields.io/badge/Report-a%20Bug-171D2B?style=for-the-badge&logo=github&logoColor=white" alt="Report a Bug">
 </a>
 
-🇬🇧 English
-  ·  
-🇷🇺 Русский
+<p>
+  <a href="#section-english">🇬🇧 English</a>
+  &nbsp; · &nbsp;
+  <a href="#section-russian">🇷🇺 Русский</a>
+</p>
 
 <img src="Screenshots/home.png" width="900" alt="Azeroth Launcher — Home">
 </div>
 
 ⸻
-
+<a id="section-english"></a>
 English
 
 Overview
@@ -196,6 +198,7 @@ Users are responsible for obtaining and using game files in accordance with appl
 License information will be added before the project is distributed under an open-source license.
 
 ⸻
+<a id="section-russian"></a>
 
 Русский
 
