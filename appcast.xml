@@ -1,10 +1,31 @@
-<?xml version="1.0" encoding="utf-8"?>
-<rss version="2.0"
-     xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><!-- sparkle-sign-warning:
+IMPORTANT: This file was signed by Sparkle. Any modifications to this file requires re-signing this file with generate_appcast or sign_update! The signed signature will be embedded at the end of this file.
+--><rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/" version="2.0">
+
     <channel>
-        <title>Azeroth Launcher Updates</title>
+        <title>Azeroth Launcher</title>
         <link>https://github.com/IWasYourTomb/Azeroth-Launcher</link>
-        <description>Updates for Azeroth Launcher</description>
-        <language>en</language>
+        <description>Azeroth Launcher Updates</description>
+        <language>ru</language>
+
+        <item>
+            <title>Azeroth Launcher 1.0.0</title>
+            <description><![CDATA[
+                <h2>Azeroth Launcher 1.0.0</h2>
+                <ul>
+                    <li>Первый публичный релиз.</li>
+                    <li>Поддержка Wine Runtime.</li>
+                    <li>Поддержка MTLD3D для Cataclysm.</li>
+                    <li>Русская и английская локализация.</li>
+                </ul>
+            ]]></description>
+
+            <pubDate>Sun, 22 Nov 2026 01:28:00 +0300</pubDate>
+
+            <enclosure url="https://github.com/IWasYourTomb/Azeroth-Launcher/releases/download/v1.0.0/Azeroth-Launcher-1.0.0-macos.zip" sparkle:version="1" sparkle:shortVersionString="1.0.0" length="12357629" type="application/octet-stream" sparkle:edSignature="1ovwpWi1WeANtfjxKBLpnrftHNvd3UxPYJ/94ri8+xUTYSxEbKrKa7Chsw2eOUbXDlbcimFt3yXrlPQjZEj5Ag=="></enclosure>
+        </item>
     </channel>
-</rss>
+</rss><!-- sparkle-signatures:
+edSignature: csUjTgeN6JEMojmKnDV3oogr+BBjrzYGvWLDA6b2SZWbJvJxJ2hkyjzMmI9EP5LRaLjVC3I6J4c/X7VfjU8CBQ==
+length: 1629
+-->
