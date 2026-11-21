@@ -9,6 +9,20 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
         <language>ru</language>
 
         <item>
+            <title>Azeroth Launcher 1.0.2</title>
+            <description><![CDATA[
+                <h2>Azeroth Launcher 1.0.2</h2>
+                <ul>
+                    <li>Исправлено отображение версии приложения в боковой панели.</li>
+                </ul>
+            ]]></description>
+
+            <pubDate>Sun, 22 Nov 2026 01:58:10 +0300</pubDate>
+
+            <enclosure url="https://github.com/IWasYourTomb/Azeroth-Launcher/releases/download/v1.0.2/Azeroth-Launcher-1.0.2-macos.zip" sparkle:version="3" sparkle:shortVersionString="1.0.2" length="12358450" type="application/octet-stream" sparkle:edSignature="4fFV15rKbqxghVCmmzLyxM7c7mtE+5cNXhONZcG9abL9rRWj3Vusgiy4bKcw1H/cm+YfLRrYlwGEHfoB4P+dCA=="></enclosure>
+        </item>
+
+        <item>
             <title>Azeroth Launcher 1.0.1</title>
             <description><![CDATA[
                 <h2>Azeroth Launcher 1.0.1</h2>
@@ -42,6 +56,6 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
 
     </channel>
 </rss><!-- sparkle-signatures:
-edSignature: Etgqf6SMKJOW/tRIEK4kXSBrwPdWipMA3pmNP4q5vBbpO5exzm13km9RFz8yQS0/i8IfdQbxF4/WaKiRa7yxCg==
-length: 2509
+edSignature: VNzL5hVFB0u7TyFjVKBmu8qsXkJ0qLjKOqTDx2Jkj3PJgSeNTOZaTjgS9f0RNzX5jAaUur3LDurzNru+LXPXDA==
+length: 3316
 -->
