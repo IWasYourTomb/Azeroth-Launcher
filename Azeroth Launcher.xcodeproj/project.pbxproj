@@ -17,6 +17,10 @@
 		B138F288309FF69D004A95F6 /* Azeroth-Launcher-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Azeroth-Launcher-Info.plist"; sourceTree = SOURCE_ROOT; };
 		B16E10DD30A7DC7900204E65 /* Readme.md */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Readme.md; sourceTree = "<group>"; };
 		B1B15E2430B2505400BDA05D /* Renderers */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Renderers; path = "Azeroth Launcher/Resources/Renderers"; sourceTree = "<group>"; };
+		B1B15E2730B25CC800BDA05D /* app-settings.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "app-settings.png"; sourceTree = "<group>"; };
+		B1B15E2830B25CC800BDA05D /* games.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = games.png; sourceTree = "<group>"; };
+		B1B15E2930B25CC800BDA05D /* home.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = home.png; sourceTree = "<group>"; };
+		B1B15E2A30B25CC800BDA05D /* launch-settings.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "launch-settings.png"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -57,6 +61,7 @@
 		B120AD06309E8F8F00489758 = {
 			isa = PBXGroup;
 			children = (
+				B1B15E2630B25C6900BDA05D /* Screenshots */,
 				B1B15E2430B2505400BDA05D /* Renderers */,
 				B16E10DD30A7DC7900204E65 /* Readme.md */,
 				B138F288309FF69D004A95F6 /* Azeroth-Launcher-Info.plist */,
@@ -71,6 +76,17 @@
 				B120AD0F309E8F8F00489758 /* Azeroth Launcher.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		B1B15E2630B25C6900BDA05D /* Screenshots */ = {
+			isa = PBXGroup;
+			children = (
+				B1B15E2730B25CC800BDA05D /* app-settings.png */,
+				B1B15E2830B25CC800BDA05D /* games.png */,
+				B1B15E2930B25CC800BDA05D /* home.png */,
+				B1B15E2A30B25CC800BDA05D /* launch-settings.png */,
+			);
+			path = Screenshots;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
