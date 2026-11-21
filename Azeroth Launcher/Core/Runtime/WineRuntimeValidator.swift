@@ -10,12 +10,14 @@ import Foundation
 struct WineRuntimeValidationResult {
     let isValid: Bool
     let version: String?
+    let architecture: String?
     let error: String?
 
-    static func success(version: String) -> Self {
+    static func success(version: String, architecture: String)-> Self {
         WineRuntimeValidationResult(
             isValid: true,
             version: version,
+            architecture: architecture,
             error: nil
         )
     }
@@ -24,147 +26,264 @@ struct WineRuntimeValidationResult {
         WineRuntimeValidationResult(
             isValid: false,
             version: nil,
+            architecture: nil,
             error: error
         )
     }
 }
 
 actor WineRuntimeValidator {
+    private let fileManager = FileManager.default
+
+    private let lipoURL = URL(
+        fileURLWithPath: "/usr/bin/lipo"
+    )
+
+    private let archURL = URL(
+        fileURLWithPath: "/usr/bin/arch"
+    )
 
     func validate(at runtimeDirectory: URL) async -> WineRuntimeValidationResult {
-        let fileManager = FileManager.default
+
+        let runtimeDirectory = runtimeDirectory.standardizedFileURL
+
+        print("[WineRuntimeValidator] Validating Runtime")
+        print("[WineRuntimeValidator] Path: \(runtimeDirectory.path)")
+
+        var isDirectory: ObjCBool = false
+
+        guard fileManager.fileExists(
+            atPath: runtimeDirectory.path,
+            isDirectory: &isDirectory
+        ), isDirectory.boolValue else {
+            return .failure(
+                "Runtime directory does not exist."
+            )
+        }
 
         let binDirectory = runtimeDirectory
             .appendingPathComponent("bin", isDirectory: true)
 
         let wineExecutable = binDirectory
-            .appendingPathComponent("wine", isDirectory: false)
+            .appendingPathComponent("wine")
 
         let wineserverExecutable = binDirectory
-            .appendingPathComponent("wineserver", isDirectory: false)
+            .appendingPathComponent("wineserver")
 
-        print("[WineRuntimeValidator] Runtime: \(runtimeDirectory.path)")
-        print("[WineRuntimeValidator] Bin: \(binDirectory.path)")
-        
-        print("[WineRuntimeValidator] Wine path: \(wineExecutable.path)")
-        print("[WineRuntimeValidator] Wine exists: \(fileManager.fileExists(atPath: wineExecutable.path))")
-        print("[WineRuntimeValidator] Wine executable: \(fileManager.isExecutableFile(atPath: wineExecutable.path))")
-
-        if let attributes = try? fileManager.attributesOfItem(
+        guard fileManager.isExecutableFile(
             atPath: wineExecutable.path
-        ) {
-            print("[WineRuntimeValidator] Wine permissions: \(attributes[.posixPermissions] ?? "unknown")")
-            print("[WineRuntimeValidator] Wine file type: \(attributes[.type] ?? "unknown")")
+        ) else {
+            return .failure(
+                "Wine executable is missing or not executable."
+            )
         }
-        print("[WineRuntimeValidator] Wineserver path: \(wineserverExecutable.path)")
-        print("[WineRuntimeValidator] Wineserver exists: \(fileManager.fileExists(atPath: wineserverExecutable.path))")
-        print("[WineRuntimeValidator] Wineserver executable: \(fileManager.isExecutableFile(atPath: wineserverExecutable.path))")
-
-        if let attributes = try? fileManager.attributesOfItem(
+        guard fileManager.isExecutableFile(
             atPath: wineserverExecutable.path
-        ) {
-            print("[WineRuntimeValidator] Wineserver permissions: \(attributes[.posixPermissions] ?? "unknown")")
-            print("[WineRuntimeValidator] Wineserver file type: \(attributes[.type] ?? "unknown")")
-        }
-        guard fileManager.fileExists(atPath: wineExecutable.path) else {
+        ) else {
+
             return .failure(
-                "Wine executable does not exist: \(wineExecutable.path)"
+                "Wineserver executable is missing or not executable."
             )
         }
 
-        guard fileManager.fileExists(atPath: wineserverExecutable.path) else {
-            return .failure(
-                "Wineserver executable does not exist: \(wineserverExecutable.path)"
-            )
-        }
         do {
-            print("[WineRuntimeValidator] Executing wine --version")
-
-            let output = try await executeWineVersion(
-                executable: wineExecutable
+            let wineArchitectures = try executableArchitectures(
+                at: wineExecutable
             )
 
-            let version = output.trimmingCharacters(
-                in: .whitespacesAndNewlines
+            let wineserverArchitectures = try executableArchitectures(
+                at: wineserverExecutable
+            )
+
+            let commonArchitectures = wineArchitectures
+                .intersection(wineserverArchitectures)
+
+            guard !commonArchitectures.isEmpty else {
+                return .failure(
+                    "Wine and Wineserver architectures do not match."
+                )
+            }
+
+            print(
+                "[WineRuntimeValidator] Wine architectures: \(wineArchitectures)"
+            )
+
+            print(
+                "[WineRuntimeValidator] Wineserver architectures: \(wineserverArchitectures)"
+            )
+
+            let preferredArchitectures = [
+                "arm64",
+                "x86_64"
+            ]
+
+            guard let selectedArchitecture = preferredArchitectures.first(
+                where: { commonArchitectures.contains($0) }
+            ) else {
+
+                return .failure(
+                    "Runtime architecture is not supported. Found: \(commonArchitectures)"
+                )
+            }
+            
+            let version = try executeWineVersion(
+                executable: wineExecutable,
+                architecture: selectedArchitecture
             )
 
             guard !version.isEmpty else {
-                return .failure("Wine returned an empty version.")
+
+                return .failure(
+                    "Wine returned an empty version."
+                )
             }
 
-            print("[WineRuntimeValidator] Valid runtime: \(version)")
+            print(
+                "[WineRuntimeValidator] Valid Runtime: \(version)"
+            )
 
-            return .success(version: version)
+            print(
+                "[WineRuntimeValidator] Architecture: \(selectedArchitecture)"
+            )
+
+            return .success(
+                version: version,
+                architecture: selectedArchitecture
+            )
 
         } catch {
-            print("[WineRuntimeValidator] Execution failed: \(error.localizedDescription)")
+            print(
+                "[WineRuntimeValidator] Validation failed: \(error.localizedDescription)"
+            )
 
-            return .failure(error.localizedDescription)
+            return .failure(
+                error.localizedDescription
+            )
         }
     }
 
+    private func executableArchitectures(at executable: URL) throws -> Set<String> {
+        let output = try executeCommand(
+            executable: lipoURL,
+            arguments: [
+                "-archs",
+                executable.path
+            ]
+        )
 
-    private func executeWineVersion(executable: URL) async throws -> String {
-        let process = Process()
-
-        let archExecutable = URL(fileURLWithPath: "/usr/bin/arch")
-
-        process.executableURL = archExecutable
-        process.arguments = [
-            "-x86_64",
-            executable.path,
-            "--version"
+        let supportedArchitectures: Set<String> = [
+            "arm64",
+            "x86_64"
         ]
 
-        let outputPipe = Pipe()
-        process.standardOutput = outputPipe
-        process.standardError = outputPipe
-
-        return try await withCheckedThrowingContinuation { continuation in
-            process.terminationHandler = { process in
-                let data = outputPipe.fileHandleForReading.readDataToEndOfFile()
-                let output = String(data: data, encoding: .utf8) ?? ""
-
-                print("[WineRuntimeValidator] Exit code: \(process.terminationStatus)")
-                print("[WineRuntimeValidator] Output: \(output)")
-
-                guard process.terminationStatus == 0 else {
-                    continuation.resume(
-                        throwing: ValidatorError.executionFailed(
-                            output.trimmingCharacters(in: .whitespacesAndNewlines)
-                        )
-                    )
-                    return
+        let architectures = Set(
+            output
+                .split(whereSeparator: \.isWhitespace)
+                .map(String.init)
+                .filter {
+                    supportedArchitectures.contains($0)
                 }
+        )
 
-                continuation.resume(returning: output)
-            }
+        guard !architectures.isEmpty else {
 
-            do {
-                try process.run()
-            } catch {
-                let nsError = error as NSError
-
-                print("[WineRuntimeValidator] Launch error domain: \(nsError.domain)")
-                print("[WineRuntimeValidator] Launch error code: \(nsError.code)")
-                print("[WineRuntimeValidator] Launch error: \(nsError.localizedDescription)")
-
-                continuation.resume(throwing: error)
-            }
+            throw ValidatorError.unsupportedArchitecture(
+                executable.lastPathComponent
+            )
         }
+
+        return architectures
+    }
+
+    private func executeWineVersion(executable: URL, architecture: String) throws -> String {
+        let output = try executeCommand(
+            executable: archURL,
+            arguments: [
+                "-\(architecture)",
+                executable.path,
+                "--version"
+            ]
+        )
+
+        let version = output.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        )
+
+        guard !version.isEmpty else {
+            throw ValidatorError.emptyVersion
+        }
+
+        return version
+    }
+
+    private func executeCommand(executable: URL, arguments: [String]) throws -> String {
+        let process = Process()
+
+        process.executableURL = executable
+        process.arguments = arguments
+
+        let outputPipe = Pipe()
+        let errorPipe = Pipe()
+
+        process.standardOutput = outputPipe
+        process.standardError = errorPipe
+
+        do {
+            try process.run()
+        } catch {
+
+            throw ValidatorError.executionFailed(
+                error.localizedDescription
+            )
+        }
+
+        process.waitUntilExit()
+
+        let outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
+        let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
+
+        let output = String(
+            data: outputData,
+            encoding: .utf8
+        ) ?? ""
+
+        let errorOutput = String(
+            data: errorData,
+            encoding: .utf8
+        ) ?? ""
+
+        guard process.terminationStatus == 0 else {
+
+            throw ValidatorError.executionFailed(
+                errorOutput.isEmpty
+                    ? output
+                    : errorOutput
+            )
+        }
+
+        return output
     }
 
     enum ValidatorError: LocalizedError {
+        case unsupportedArchitecture(String)
         case executionFailed(String)
-
+        case emptyVersion
         var errorDescription: String? {
-            switch self {
-            case .executionFailed(let output):
-                if output.isEmpty {
-                    return "Wine failed to execute."
-                }
 
-                return "Wine execution failed: \(output)"
+            switch self {
+
+            case .unsupportedArchitecture(let executable):
+                return """
+                Unsupported architecture in executable:
+                \(executable)
+                """
+
+            case .executionFailed(let message):
+                return message.isEmpty
+                    ? "Failed to execute Wine Runtime."
+                    : "Wine Runtime execution failed: \(message)"
+
+            case .emptyVersion: return "Wine returned an empty version."
             }
         }
     }

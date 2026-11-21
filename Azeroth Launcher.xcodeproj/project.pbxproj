@@ -9,16 +9,18 @@
 /* Begin PBXBuildFile section */
 		B138F27D309F633C004A95F6 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = B138F27C309F633C004A95F6 /* ZIPFoundation */; };
 		B16E10D830A7DA9000204E65 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = B16E10D730A7DA9000204E65 /* Sparkle */; };
+		B1B15E2530B2505400BDA05D /* Renderers in Resources */ = {isa = PBXBuildFile; fileRef = B1B15E2430B2505400BDA05D /* Renderers */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		B120AD0F309E8F8F00489758 /* Azeroth Launcher.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Azeroth Launcher.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		B138F288309FF69D004A95F6 /* Azeroth-Launcher-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Azeroth-Launcher-Info.plist"; sourceTree = SOURCE_ROOT; };
 		B16E10DD30A7DC7900204E65 /* Readme.md */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Readme.md; sourceTree = "<group>"; };
+		B1B15E2430B2505400BDA05D /* Renderers */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Renderers; path = "Azeroth Launcher/Resources/Renderers"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		B1B15E0730A9D12500BDA05D /* Exceptions for "Azeroth Launcher" folder in "Azeroth Launcher" target */ = {
+		B1B15E2330B2500800BDA05D /* Exceptions for "Azeroth Launcher" folder in "Azeroth Launcher" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Resources/Renderers/MTLD3D/Cataclysm/d3d9.dll,
@@ -32,7 +34,7 @@
 		B120AD11309E8F8F00489758 /* Azeroth Launcher */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				B1B15E0730A9D12500BDA05D /* Exceptions for "Azeroth Launcher" folder in "Azeroth Launcher" target */,
+				B1B15E2330B2500800BDA05D /* Exceptions for "Azeroth Launcher" folder in "Azeroth Launcher" target */,
 			);
 			path = "Azeroth Launcher";
 			sourceTree = "<group>";
@@ -55,6 +57,7 @@
 		B120AD06309E8F8F00489758 = {
 			isa = PBXGroup;
 			children = (
+				B1B15E2430B2505400BDA05D /* Renderers */,
 				B16E10DD30A7DC7900204E65 /* Readme.md */,
 				B138F288309FF69D004A95F6 /* Azeroth-Launcher-Info.plist */,
 				B120AD11309E8F8F00489758 /* Azeroth Launcher */,
@@ -141,6 +144,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B1B15E2530B2505400BDA05D /* Renderers in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

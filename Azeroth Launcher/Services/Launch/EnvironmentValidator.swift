@@ -9,22 +9,25 @@ import Foundation
 
 @MainActor
 final class EnvironmentValidator {
+
     private let fileManager: FileManager
     private let prefixManager: PrefixManager
     private let homeManager: WineHomeManager
+    private let rendererInstaller: RendererInstaller
 
     init(
         fileManager: FileManager = .default,
         prefixManager: PrefixManager = PrefixManager(),
-        homeManager: WineHomeManager = WineHomeManager()
+        homeManager: WineHomeManager = WineHomeManager(),
+        rendererInstaller: RendererInstaller = RendererInstaller()
     ) {
         self.fileManager = fileManager
         self.prefixManager = prefixManager
         self.homeManager = homeManager
+        self.rendererInstaller = rendererInstaller
     }
 
-    func validate(installation: GameInstallation, runtime: WineRuntime,renderer: RendererType) async -> EnvironmentValidationReport {
-
+    func validate(installation: GameInstallation, runtime: WineRuntime, renderer: RendererType) async -> EnvironmentValidationReport{
         var checks: [EnvironmentCheckResult] = []
 
         validateRuntime(
@@ -47,6 +50,7 @@ final class EnvironmentValidator {
         )
 
         validateRenderer(
+            installation: installation,
             runtime: runtime,
             renderer: renderer,
             into: &checks
@@ -62,8 +66,7 @@ final class EnvironmentValidator {
         )
     }
 
-    private func validateRuntime(_ runtime: WineRuntime,into checks: inout [EnvironmentCheckResult]) {
-
+    private func validateRuntime(_ runtime: WineRuntime, into checks: inout [EnvironmentCheckResult]    ) {
         let wineURL = runtime.executableURL
 
         append(
@@ -94,14 +97,10 @@ final class EnvironmentValidator {
             into: &checks
         )
     }
-
-    private func validatePrefix(_ installation: GameInstallation,into checks: inout [EnvironmentCheckResult]) async {
-
+    private func validatePrefix(_ installation: GameInstallation, into checks: inout [EnvironmentCheckResult]) async {
         let prefixURL = installation.prefixPath
 
-        guard fileManager.fileExists(
-            atPath: prefixURL.path
-        ) else {
+        guard isDirectory(at: prefixURL) else {
 
             append(
                 id: "prefix",
@@ -123,7 +122,7 @@ final class EnvironmentValidator {
         )
 
         let validation = await prefixManager.validate(
-            at: installation.prefixPath
+            at: prefixURL
         )
 
         append(
@@ -136,98 +135,165 @@ final class EnvironmentValidator {
             into: &checks
         )
     }
-    
-    private func validateGameExecutable(_ installation: GameInstallation, into checks: inout [EnvironmentCheckResult]) {
 
+    private func validateGameExecutable(_ installation: GameInstallation, into checks: inout [EnvironmentCheckResult]) {
         let executableURL = installation.installationPath
             .appendingPathComponent("Wow.exe")
 
-        let exists = fileManager.fileExists(
-            atPath: executableURL.path
+        let isRegularFile = self.isRegularFile(
+            at: executableURL
         )
 
         let readable = fileManager.isReadableFile(
             atPath: executableURL.path
         )
 
-        let status: EnvironmentCheckStatus =
-            exists && readable ? .ready : .error
-
         append(
             id: "game-executable",
             title: "WoW Executable",
             details: executableURL.path,
+            status: isRegularFile && readable ? .ready : .error,
+            into: &checks
+        )
+    }
+
+    private func validateWineHome(into checks: inout [EnvironmentCheckResult]) {
+        let wineDirectory = homeManager.wineDirectory
+
+        let exists = isDirectory(
+            at: wineDirectory
+        )
+
+        let writable = exists && fileManager.isWritableFile(
+            atPath: wineDirectory.path
+        )
+
+        let status: EnvironmentCheckStatus
+
+        if !exists {
+            status = .warning
+        } else if !writable {
+            status = .error
+        } else {
+            status = .ready
+        }
+
+        let details: String
+
+        if !exists {
+            details = "Wine Home directory has not been created yet."
+        } else if !writable {
+            details = "Wine Home directory is not writable."
+        } else {
+            details = wineDirectory.path
+        }
+
+        append(
+            id: "wine-home",
+            title: "Wine Home",
+            details: details,
             status: status,
             into: &checks
         )
     }
 
-    private func validateWineHome(into checks: inout [EnvironmentCheckResult]){
+    private func validateRenderer(
+        installation: GameInstallation,
+        runtime: WineRuntime,
+        renderer: RendererType,
+        into checks: inout [EnvironmentCheckResult]
+    ) {
 
-        let wineDirectory = homeManager.wineDirectory
-
-        let exists = fileManager.fileExists(
-            atPath: wineDirectory.path
-        )
-
-        append(
-            id: "wine-home",
-            title: "Wine Home",
-            details: wineDirectory.path,
-            status: exists ? .ready : .warning,
-            into: &checks
-        )
-    }
-
-    private func validateRenderer(runtime: WineRuntime, renderer: RendererType, into checks: inout [EnvironmentCheckResult]) {
         switch renderer {
         case .dxvk:
-            let runtimeDirectory = runtime.executableURL
-                .deletingLastPathComponent()
-                .deletingLastPathComponent()
-            let icdManifest = runtimeDirectory
-                .appendingPathComponent(
-                    "lib/vulkan/icd.d/MoltenVK_icd.json"
-                )
-
-            let icdExists = fileManager.fileExists(
-                atPath: icdManifest.path
-            )
-
-            append(
-                id: "vulkan-icd",
-                title: "MoltenVK Vulkan ICD",
-                details: icdManifest.path,
-                status: icdExists ? .ready : .error,
-                into: &checks
-            )
-
-            append(
-                id: "dxvk",
-                title: "DXVK Components",
-                details: "DXVK installation validation is not implemented yet.",
-                status: .warning,
+            validateDXVK(
+                runtime: runtime,
                 into: &checks
             )
 
         case .metal:
+            validateMetalRenderer(
+                installation: installation,
+                into: &checks
+            )
+        }
+    }
+
+    private func validateDXVK(runtime: WineRuntime, into checks: inout [EnvironmentCheckResult]) {
+        let runtimeDirectory = runtime.executableURL
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+
+        let icdManifest = runtimeDirectory
+            .appendingPathComponent(
+                "lib/vulkan/icd.d/MoltenVK_icd.json"
+            )
+
+        let icdExists = isRegularFile(
+            at: icdManifest
+        )
+
+        append(
+            id: "vulkan-icd",
+            title: "MoltenVK Vulkan ICD",
+            details: icdManifest.path,
+            status: icdExists ? .ready : .error,
+            into: &checks
+        )
+
+        append(
+            id: "dxvk",
+            title: "DXVK Components",
+            details: "DXVK installation validation is not implemented yet.",
+            status: .warning,
+            into: &checks
+        )
+    }
+
+    private func validateMetalRenderer(installation: GameInstallation,into checks: inout [EnvironmentCheckResult]) {
+        guard installation.edition == .cataclysm else {
             append(
                 id: "metal-renderer",
-                title: "Metal Renderer",
-                details: "MTLD3D component validation is not implemented yet.",
+                title: "MTLD3D Renderer",
+                details: "MTLD3D is not required for this game edition.",
+                status: .ready,
+                into: &checks
+            )
+            return
+        }
+
+        do {
+            let installed = try rendererInstaller.isInstalled(
+                in: installation.prefixPath
+            )
+
+            append(
+                id: "metal-renderer",
+                title: "MTLD3D Renderer",
+                details: installed
+                    ? "MTLD3D 0.7.0 is installed and checksum is valid."
+                    : "MTLD3D 0.7.0 will be installed or repaired before launch.",
+                status: installed ? .ready : .warning,
+                into: &checks
+            )
+
+        } catch {
+            append(
+                id: "metal-renderer",
+                title: "MTLD3D Renderer",
+                details: "Renderer will be checked during launch: \(error.localizedDescription)",
                 status: .warning,
                 into: &checks
             )
         }
     }
 
-
     private func validateSidecar(into checks: inout [EnvironmentCheckResult]) {
-
         let sidecarURL = Bundle.main.resourceURL?
             .appendingPathComponent("x87sidecar")
 
         guard let sidecarURL else {
+
             append(
                 id: "sidecar",
                 title: "x87 Sidecar",
@@ -252,6 +318,26 @@ final class EnvironmentValidator {
         )
     }
 
+    private func isDirectory(at url: URL) -> Bool {
+        var isDirectory: ObjCBool = false
+
+        return fileManager.fileExists(
+            atPath: url.path,
+            isDirectory: &isDirectory
+        ) && isDirectory.boolValue
+    }
+
+    private func isRegularFile(at url: URL) -> Bool {
+
+        guard let attributes = try? fileManager.attributesOfItem(
+            atPath: url.path
+        ) else {
+            return false
+        }
+
+        return attributes[.type] as? FileAttributeType == .typeRegular
+    }
+
     private func append(
         id: String,
         title: String,
@@ -259,7 +345,6 @@ final class EnvironmentValidator {
         status: EnvironmentCheckStatus,
         into checks: inout [EnvironmentCheckResult]
     ) {
-
         checks.append(
             EnvironmentCheckResult(
                 id: id,

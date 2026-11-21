@@ -9,6 +9,7 @@ import Darwin
 
 actor WineRuntimeInstaller {
     private let quarantineAttribute = "com.apple.quarantine"
+    private let validator = WineRuntimeValidator()
 
     private var applicationSupportDirectory: URL {
         FileManager.default
@@ -100,15 +101,11 @@ actor WineRuntimeInstaller {
             }
 
             try extractRuntime(release: release)
-
-            try validateRuntime(at: stagingDirectory(for: release))
-
             try diagnoseExtractedQuarantine(release: release)
-
             try setExecutablePermissions(release: release)
-
-            try diagnoseRuntime(release: release)
-
+            try await validateRuntime(
+                at: stagingDirectory(for: release)
+            )
             try installStagingRuntime(release: release)
 
             print("[WineRuntimeInstaller] Installation completed successfully")
@@ -439,28 +436,33 @@ actor WineRuntimeInstaller {
         print("[WineRuntimeInstaller] Extraction completed")
     }
 
-    private func validateRuntime(at directory: URL) throws {
+    private func validateRuntime(at directory: URL) async throws {
+        print(
+            "[WineRuntimeInstaller] Validating Runtime..."
+        )
 
-        print("[WineRuntimeInstaller] Validating Runtime...")
+        let result = await validator.validate(
+            at: directory
+        )
 
-        let fileManager = FileManager.default
+        guard result.isValid else {
 
-        let wineURL = directory
-            .appendingPathComponent("bin", isDirectory: true)
-            .appendingPathComponent("wine")
-
-        let wineserverURL = directory
-            .appendingPathComponent("bin", isDirectory: true)
-            .appendingPathComponent("wineserver")
-
-        guard fileManager.fileExists(atPath: wineURL.path),
-              fileManager.fileExists(atPath: wineserverURL.path) else {
-
-            throw InstallerError.invalidRuntime
+            throw InstallerError.installationFailed(
+                result.error ?? "Unknown Runtime validation error."
+            )
         }
 
-        print("[WineRuntimeInstaller] wine: \(wineURL.path)")
-        print("[WineRuntimeInstaller] wineserver: \(wineserverURL.path)")
+        print(
+            "[WineRuntimeInstaller] Runtime version: \(result.version ?? "Unknown")"
+        )
+
+        print(
+            "[WineRuntimeInstaller] Runtime architecture: \(result.architecture ?? "Unknown")"
+        )
+
+        print(
+            "[WineRuntimeInstaller] Validation completed successfully"
+        )
     }
 
     private func setExecutablePermissions(release: WineRuntimeRelease) throws {

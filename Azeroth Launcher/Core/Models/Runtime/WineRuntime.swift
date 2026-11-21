@@ -13,6 +13,7 @@ struct WineRuntime: Identifiable, Codable, Hashable {
     var version: String
     var executableURL: URL
     var isDefault: Bool
+    
     init(
         id: UUID = UUID(),
         name: String,
@@ -26,32 +27,52 @@ struct WineRuntime: Identifiable, Codable, Hashable {
         self.executableURL = executableURL
         self.isDefault = isDefault
     }
-    
+
     var displayName: String {
         "\(name) \(version)"
     }
-    
+
     var isAvailable: Bool {
-        FileManager.default.isExecutableFile(
+        let fileManager = FileManager.default
+        
+        guard fileManager.isExecutableFile(
             atPath: executableURL.path
+        ) else {
+            return false
+        }
+
+        guard let wineserverURL else {
+            return false
+        }
+
+        return fileManager.isExecutableFile(
+            atPath: wineserverURL.path
         )
     }
-    
+
     var wineserverURL: URL? {
         let executableDirectory = executableURL
             .deletingLastPathComponent()
-        
+
         let candidates = [
             executableDirectory.appendingPathComponent("wineserver"),
+
             executableDirectory
                 .deletingLastPathComponent()
                 .appendingPathComponent("bin/wineserver")
         ]
-        
+
         return candidates.first {
             FileManager.default.isExecutableFile(
                 atPath: $0.path
             )
         }
+    }
+
+    var runtimeDirectory: URL {
+        executableURL
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .standardizedFileURL
     }
 }
