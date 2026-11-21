@@ -20,10 +20,8 @@ Manage your game installations, configure Wine environments, customize graphics,
   <a href="#section-russian">🇷🇺 Русский</a>
 </p>
 
-<img src="Screenshots/home.png" width="900" alt="Azeroth Launcher — Home">
 </div>
 
-⸻
 <a id="section-english"></a>
 English
 
