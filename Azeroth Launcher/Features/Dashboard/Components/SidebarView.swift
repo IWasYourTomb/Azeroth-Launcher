@@ -17,6 +17,10 @@ struct SidebarView: View {
     @State private var isLogoAnimating = false
     @State private var hasAppeared = false
     @State private var hoveredSection: DashboardSection?
+    
+    private var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -281,7 +285,7 @@ struct SidebarView: View {
                         .tracking(0.8)
                         .foregroundStyle(LauncherTheme.primaryText)
 
-                    Text("Version 1.0.0")
+                    Text("Version \(appVersion)")
                         .font(.system(size: 10))
                         .foregroundStyle(LauncherTheme.secondaryText)
                 }
