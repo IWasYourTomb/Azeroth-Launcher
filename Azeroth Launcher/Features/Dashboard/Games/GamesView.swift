@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct GamesView: View {
+    @Namespace private var layoutAnimation
     @Environment(AppState.self) private var appState
     @Environment(GameManager.self) private var gameManager
     @Environment(\.locale) private var appLocale
@@ -15,7 +16,17 @@ struct GamesView: View {
     
     @State private var selectedInstallation: GameInstallation?
     @State private var launchingInstallationID: UUID?
-    
+    @AppStorage("games.layoutMode")
+    private var layoutModeRawValue: String = "grid"
+
+    private var layoutMode: GamesLayoutMode {
+        get {
+            GamesLayoutMode(rawValue: layoutModeRawValue) ?? .grid
+        }
+        nonmutating set {
+            layoutModeRawValue = newValue.rawValue
+        }
+    }
     @State private var launchError: String?
     
     @State private var isEnvironmentValidating = false
@@ -131,62 +142,154 @@ struct GamesView: View {
     
     private var installedGames: some View {
         VStack(alignment: .leading, spacing: 22) {
-            
+
             HStack(alignment: .center) {
                 VStack(alignment: .leading, spacing: 5) {
                     Text("Your game library")
                         .font(.system(size: 19, weight: .bold))
                         .foregroundStyle(LauncherTheme.primaryText)
-                    
+
                     Text("Your installed World of Warcraft clients")
                         .font(.system(size: 12))
                         .foregroundStyle(LauncherTheme.secondaryText)
                 }
-                
-                Spacer(minLength: 12)
-                
-                HStack(spacing: 7) {
-                    Image(systemName: "square.grid.2x2.fill")
-                        .font(.system(size: 11))
-                    
-                    Text("\(installedInstallations.count)")
-                        .font(.system(size: 12, weight: .bold))
-                        .monospacedDigit()
-                    
-                    Text("INSTALLED")
-                        .font(.system(size: 9, weight: .bold))
-                        .tracking(1)
+
+                Spacer(minLength: 8)
+
+                HStack(spacing: 10) {
+                    installedCount
+                    layoutSwitcher
                 }
-                .foregroundStyle(LauncherTheme.accent)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 9)
-                .background(LauncherTheme.accentBackground)
-                .clipShape(Capsule())
             }
             .padding(.horizontal, 24)
-            
+
+
             ScrollView(.vertical) {
                 LazyVGrid(
-                    columns: [
-                        GridItem(
-                            .adaptive(minimum: 420),
-                            spacing: 18
-                        )
-                    ],
+                    columns: gridColumns,
                     alignment: .leading,
                     spacing: 18
                 ) {
                     ForEach(installedInstallations) { installation in
                         gameCard(for: installation)
+                            .frame(maxWidth: .infinity)
+                            .transition(
+                                .opacity.combined(
+                                    with: .scale(scale: 0.96)
+                                )
+                            )
                     }
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, 24)
                 .padding(.vertical, 18)
+                .animation(
+                    .spring(response: 0.4, dampingFraction: 0.85),
+                    value: layoutMode
+                )
             }
+            .scrollIndicators(.hidden)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    private var gridColumns: [GridItem] {
+        switch layoutMode {
+        case .list:
+            return [
+                GridItem(.flexible(), spacing: 18)
+            ]
+
+        case .grid:
+            return [
+                GridItem(
+                    .adaptive(
+                        minimum: 320,
+                        maximum: 520
+                    ),
+                    spacing: 18
+                )
+            ]
+        }
+    }
+    
+    private var installedCount: some View {
+        HStack(spacing: 7) {
+            Image(systemName: "square.grid.2x2.fill")
+                .font(.system(size: 11))
+
+            Text("\(installedInstallations.count)")
+                .font(.system(size: 12, weight: .bold))
+                .monospacedDigit()
+
+            Text("INSTALLED")
+                .font(.system(size: 9, weight: .bold))
+                .tracking(1)
+        }
+        .foregroundStyle(LauncherTheme.accent)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 9)
+        .glassEffect(.regular, in: Capsule())
+    }
+    
+    private var layoutSwitcher: some View {
+        HStack(spacing: 3) {
+            layoutButton(
+                mode: .list,
+                icon: "list.bullet"
+            )
+
+            layoutButton(
+                mode: .grid,
+                icon: "square.grid.2x2"
+            )
+        }
+        .padding(4)
+        .glassEffect(.regular, in: Capsule())
+    }
+
+    private func layoutButton(mode: GamesLayoutMode, icon: String) -> some View {
+        let isSelected = layoutMode == mode
+
+        return Button {
+            withAnimation(
+                .spring(
+                    response: 0.4,
+                    dampingFraction: 0.78
+                )
+            ) {
+                layoutMode = mode
+            }
+        } label: {
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(
+                    isSelected
+                        ? LauncherTheme.accent
+                        : LauncherTheme.secondaryText
+                )
+                .frame(width: 32, height: 30)
+                .background {
+                    if isSelected {
+                        Capsule()
+                            .fill(.white.opacity(0.12))
+                            .matchedGeometryEffect(
+                                id: "layoutSelection",
+                                in: layoutAnimation
+                            )
+                    }
+                }
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .help(mode == .list ? "List View" : "Grid View")
+        .accessibilityLabel(
+            mode == .list ? "List View" : "Grid View"
+        )
+        .accessibilityAddTraits(
+            isSelected ? .isSelected : []
+        )
     }
     
     private func gameCard(for installation: GameInstallation) -> some View {
@@ -205,11 +308,8 @@ struct GamesView: View {
         )
 
         let environmentStatus = environmentStatuses[installation.id]
-
         let runtimeOptions = appState.runtimeManager.runtimes
-
         let selectedRuntimeID = installation.runtimeID
-
         let isRuntimeSelectionDisabled = isLaunching || isRunning
 
         return GameCardView(
@@ -586,4 +686,9 @@ private enum GamesViewError: LocalizedError {
             return "The Wine Runtime assigned to this game was not found. Select another Runtime in Game Management."
         }
     }
+}
+
+private enum GamesLayoutMode: String {
+    case list
+    case grid
 }
