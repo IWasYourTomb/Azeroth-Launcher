@@ -1,17 +1,30 @@
 <div align="center">
 
-✨ Azeroth Launcher
+# ✨ Azeroth Launcher
 
-A native macOS launcher for World of Warcraft
+### A native macOS launcher for World of Warcraft
 
 Manage your game installations, configure Wine environments, customize graphics, and launch your favorite World of Warcraft expansions — all from one native macOS application.
 
 <br>
 
-Download Latest Release · Report a Bug · English · Русский
+<a href="https://github.com/IWasYourTomb/Azeroth-Launcher/releases/latest">
+  <img src="https://img.shields.io/badge/Download-Latest%20Release-DDA64E?style=for-the-badge&logo=apple&logoColor=white" alt="Download Latest Release">
+</a>
+<a href="https://github.com/IWasYourTomb/Azeroth-Launcher/issues/new">
+  <img src="https://img.shields.io/badge/Report-a%20Bug-171D2B?style=for-the-badge&logo=github&logoColor=white" alt="Report a Bug">
+</a>
 
-<br>
+<br><br>
+
+<a href="#english">🇬🇧 English</a>
+&nbsp; · &nbsp;
+<a href="#русский">🇷🇺 Русский</a>
+
+<br><br>
+
 <img src="Screenshots/home.png" width="900" alt="Azeroth Launcher — Home">
+
 </div>
 
 ⸻
